@@ -1,44 +1,46 @@
+import { GoogleGenAI } from "@google/genai";
+
 export default async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+
+  let image, mimeType;
   try {
-    const { image, mimeType } = await req.json();
-    const apiKey = process.env.GEMINI_API_KEY;
-    
+    ({ image, mimeType } = await req.json());
+  } catch {
+    return new Response(JSON.stringify({ error: "Некорректный запрос." }), { status: 400 });
+  }
+  if (!image) {
+    return new Response(JSON.stringify({ error: "Изображение не передано." }), { status: 400 });
+  }
+
+  try {
+    const ai = new GoogleGenAI({});
     const prompt = "Извлеки все данные таблицы с фото в JSON: { columns: ['...'], rows: [['...']] }";
-    
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        contents: [{
+
+    const response = await ai.models.generateContent({
+      model: "gemini-flash-latest",
+      contents: [
+        {
+          role: "user",
           parts: [
-            { inline_data: { mime_type: mimeType || "image/jpeg", data: image } },
-            { text: prompt }
-          ]
-        }],
-        generationConfig: { response_mime_type: "application/json" }
-      })
+            { inlineData: { mimeType: mimeType || "image/jpeg", data: image } },
+            { text: prompt },
+          ],
+        },
+      ],
+      config: { responseMimeType: "application/json" },
     });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      return new Response(JSON.stringify({ error: data?.error?.message || `Ошибка Gemini API (${response.status})` }), { status: 502 });
-    }
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    const text = response.text;
     if (!text) {
       return new Response(JSON.stringify({ error: "Gemini не вернул результат (возможно, сработал фильтр безопасности)." }), { status: 502 });
     }
     return new Response(text, { headers: { "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: e.message || "Ошибка при обращении к Gemini API." }), { status: 502 });
   }
 };
 
 export const config = {
-  path: "/api/scan-table",
-};export const config = {
   path: "/api/scan-table",
 };
