@@ -1994,7 +1994,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
     reader.onload=function(){
       busy.style.display='block';
       var base64=reader.result.split(',')[1];
-      fetch('https://ais-dev-wygxgsbcjg7xxnsqpfhhm5-316472889112.asia-southeast1.run.app/api/scan-table', {
+      fetch('/api/scan-table', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ image: base64, mimeType: file.type })
