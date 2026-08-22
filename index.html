@@ -1999,11 +1999,14 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ image: base64, mimeType: file.type })
       }).then(function(r){
-        if(!r.ok) throw new Error('Сервер вернул ошибку ('+r.status+')');
-        return r.json();
+        return r.json().catch(function(){ return null; }).then(function(data){
+          if(!r.ok) throw new Error((data && data.error) || ('Сервер вернул ошибку ('+r.status+')'));
+          return data;
+        });
       }).then(function(data){
         busy.style.display='none';
-        if(!data.columns || !data.rows) throw new Error('Не удалось распознать таблицу.');
+        if(!data || !Array.isArray(data.columns) || !Array.isArray(data.rows)) throw new Error('Не удалось распознать таблицу.');
+        if(!data.columns.length) throw new Error('На фото не найдена таблица. Попробуйте снимок покрупнее и чётче.');
         current=data;
         renderTable(data);
       }).catch(function(e){
