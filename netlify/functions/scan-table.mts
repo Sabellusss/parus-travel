@@ -2,7 +2,9 @@ import type { Context, Config } from "@netlify/functions";
 
 const PROMPT = `На изображении находится таблица (возможно, сфотографированная под углом). Извлеки ВСЕ строки данных максимально точно, не пропуская ни одной строки, включая итоговые/суммирующие строки, если они есть.
 
-Ответь СТРОГО в виде JSON (без пояснений, без markdown), строго по схеме:
+Ответь СТРОГО в виде JSON, без пояснений, без markdown-обёртки \`\`\`json, без какого-либо текста до или после JSON.
+
+Формат ответа:
 {
   "title": "заголовок таблицы, если есть, иначе пустая строка",
   "columns": ["Столбец 1", "Столбец 2"],
@@ -37,7 +39,7 @@ export default async (req: Request, context: Context) => {
 
   try {
     const apiRes = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
       {
         method: "POST",
         headers: {
@@ -47,16 +49,12 @@ export default async (req: Request, context: Context) => {
         body: JSON.stringify({
           contents: [
             {
-              role: "user",
               parts: [
                 { inline_data: { mime_type: body.mimeType, data: body.image } },
                 { text: PROMPT },
               ],
             },
           ],
-          generationConfig: {
-            responseMimeType: "application/json",
-          },
         }),
       }
     );
@@ -67,10 +65,11 @@ export default async (req: Request, context: Context) => {
     }
 
     const json = await apiRes.json();
-    const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("").trim();
+    const parts = json?.candidates?.[0]?.content?.parts || [];
+    let raw = parts.map((p: any) => p.text || "").join("\n").trim();
 
-    if (!raw) {
-      return new Response(JSON.stringify({ error: "Модель вернула пустой ответ." }), { status: 502 });
+    if (raw.startsWith("```")) {
+      raw = raw.replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
     }
 
     const data = JSON.parse(raw);
