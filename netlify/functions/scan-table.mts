@@ -2,9 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 
 const PROMPT = `На изображении находится таблица (возможно, сфотографированная под углом). Извлеки ВСЕ строки данных максимально точно, не пропуская ни одной строки, включая итоговые/суммирующие строки, если они есть.
 
-Ответь СТРОГО в виде JSON, без пояснений, без markdown-обёртки \`\`\`json, без какого-либо текста до или после JSON.
-
-Формат ответа:
+Ответь СТРОГО в виде JSON (без пояснений, без markdown), строго по схеме:
 {
   "title": "заголовок таблицы, если есть, иначе пустая строка",
   "columns": ["Столбец 1", "Столбец 2"],
@@ -21,9 +19,9 @@ export default async (req: Request, context: Context) => {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
   }
 
-  const apiKey = Netlify.env.get("ANTHROPIC_API_KEY");
+  const apiKey = Netlify.env.get("GEMINI_API_KEY");
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "Ключ ANTHROPIC_API_KEY не настроен на сервере." }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Ключ GEMINI_API_KEY не настроен на сервере." }), { status: 500 });
   }
 
   let body: { image?: string; mimeType?: string };
@@ -38,39 +36,41 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    const apiRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 2048,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "image", source: { type: "base64", media_type: body.mimeType, data: body.image } },
-              { type: "text", text: PROMPT },
-            ],
+    const apiRes = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { inline_data: { mime_type: body.mimeType, data: body.image } },
+                { text: PROMPT },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
           },
-        ],
-      }),
-    });
+        }),
+      }
+    );
 
     if (!apiRes.ok) {
       const errText = await apiRes.text();
-      return new Response(JSON.stringify({ error: `Ошибка Anthropic API (${apiRes.status}): ${errText}` }), { status: 502 });
+      return new Response(JSON.stringify({ error: `Ошибка Gemini API (${apiRes.status}): ${errText}` }), { status: 502 });
     }
 
     const json = await apiRes.json();
-    const textBlocks = (json.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text);
-    let raw = textBlocks.join("\n").trim();
+    const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("").trim();
 
-    if (raw.startsWith("```")) {
-      raw = raw.replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+    if (!raw) {
+      return new Response(JSON.stringify({ error: "Модель вернула пустой ответ." }), { status: 502 });
     }
 
     const data = JSON.parse(raw);
