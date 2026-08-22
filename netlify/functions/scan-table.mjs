@@ -21,9 +21,19 @@ export default async (req) => {
     });
     
     const data = await response.json();
-    const text = data.candidates[0].content.parts[0].text;
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: data?.error?.message || `Ошибка Gemini API (${response.status})` }), { status: 502 });
+    }
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      return new Response(JSON.stringify({ error: "Gemini не вернул результат (возможно, сработал фильтр безопасности)." }), { status: 502 });
+    }
     return new Response(text, { headers: { "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { status: 500 });
   }
+};
+
+export const config = {
+  path: "/api/scan-table",
 };
