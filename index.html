@@ -813,10 +813,10 @@ footer svg{width:64px;color:var(--gold)}
         </div>
 
         <div class="field" style="margin-top:14px">
-          <label>Туристы — имя и телефон (по одному в строке)</label>
-          <textarea id="gsTravelers" rows="8" placeholder="OLEG OLEG: +7 977 805-52-80
-VLAD OLGA: +7 977 805-52-80
-ALENA ALENA: +7 951 420-33-88"></textarea>
+          <label>Туристы — одна семья в строке: имя | телефон | отель | номер комнаты | взрослые и дети</label>
+          <textarea id="gsTravelers" rows="8" placeholder="OLEG OLEG | +7 977 805-52-80 | Muong Thanh | 1204 | 2 взрослых
+VLAD OLGA | +7 977 805-52-80 | Havana | 806 | 2 взрослых + 1 ребёнок
+ALENA ALENA | +7 951 420-33-88 | Sunrise | 315 | 1 взрослый"></textarea>
         </div>
         <div class="field" style="margin-top:14px">
           <label>Фото (отель, документы, водитель) — сохраняются у вас в браузере</label>
@@ -1655,6 +1655,29 @@ function saveGuides(){
 function tourName(id){ var t=TOURS.filter(function(x){return x.id===id;})[0]; return t?t.name:id; }
 function phoneDigits(phone){ return (phone||'').replace(/\D/g,''); }
 
+/* телефон без тире и прочих разделителей — иначе WhatsApp не распознаёт номер */
+function cleanPhone(p){ return (p||'').replace(/[-–—_.,()\/]+/g,' ').replace(/\s+/g,' ').trim(); }
+
+/* список туристов: имя | телефон | отель | номер комнаты | взрослые и дети */
+function formatTravelers(text){
+  return (text||'').split('\n').map(function(line){
+    line = line.trim();
+    if(!line) return '';
+    var parts = line.split(/\s*[|;]\s*/);
+    if(parts.length===1) parts = line.split(/\s*:\s*/);
+    var name  = (parts[0]||'').trim();
+    var phone = cleanPhone(parts[1]||'');
+    var hotel = (parts[2]||'').trim();
+    var room  = (parts[3]||'').trim();
+    var people= (parts[4]||'').trim();
+    var out=[ phone ? name+' | '+phone : name ];
+    if(hotel)  out.push('*Отель*: '+hotel);
+    if(room)   out.push('*Номер комнаты*: '+room);
+    if(people) out.push(people);
+    return out.join('\n');
+  }).filter(function(b){ return b; }).join('\n\n');
+}
+
 function fillTourSelect(sel, withAll){
   sel.innerHTML = (withAll?'<option value="">Все туры</option>':'')
     + TOURS.map(function(t){ return '<option value="'+t.id+'">'+t.name+'</option>'; }).join('');
@@ -1803,7 +1826,8 @@ function buildMessageText(){
   if(d.travelersText){
     lines.push('');
     lines.push('*Туристы:*');
-    lines.push(d.travelersText);
+    lines.push('');
+    lines.push(formatTravelers(d.travelersText));
   }
   if(d.photos && d.photos.length) lines.push('(Фото прикреплено — отправьте отдельным вложением)');
   return lines.join('\n');
