@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { createClient } from "../lib/ai-client.mjs";
 
 const MODEL = "gemini-flash-latest";
 
@@ -18,21 +18,6 @@ const RESPONSE_SCHEMA = {
   },
   required: ["columns", "rows"],
 };
-
-// Шлюз Netlify AI всегда доступен в рантайме. Собственный GEMINI_API_KEY сайта
-// отключает автоподстановку GOOGLE_GEMINI_BASE_URL, поэтому адрес шлюза задаём явно —
-// иначе SDK уходит напрямую в Google и получает 401.
-function createClient() {
-  const key = process.env.NETLIFY_AI_GATEWAY_KEY;
-  const baseUrl = process.env.NETLIFY_AI_GATEWAY_BASE_URL;
-  if (key && baseUrl) {
-    return new GoogleGenAI({
-      apiKey: key,
-      httpOptions: { baseUrl: baseUrl.replace(/\/+$/, "") },
-    });
-  }
-  return new GoogleGenAI({});
-}
 
 export default async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
