@@ -9,6 +9,7 @@ const PROMPT = [
   "Ниже — распознанная таблица туристов турагентства (столбцы и строки).",
   "Разнеси строки по турам и семьям.",
   "Одна семья — одна строка ведомости: имя (или фамилия) семьи, телефон, число взрослых (ad) и детей (chd).",
+  "Если в таблице есть отель и номер комнаты семьи — передавай их в полях hotel и room, гиду они нужны.",
   "Ребёнком считается турист с детской ценой или пометкой CHD/ребёнок; остальные — взрослые (ad).",
   "Возможные туры: dalat (Далат), islands_north (Северные острова), islands_south (Южные острова),",
   "baho (Бахо, водопады), zoklet (Зоклет).",
@@ -35,6 +36,8 @@ const RESPONSE_SCHEMA = {
               properties: {
                 name: { type: "string" },
                 phone: { type: "string" },
+                hotel: { type: "string" },
+                room: { type: "string" },
                 ad: { type: "integer" },
                 chd: { type: "integer" },
                 full: { type: "boolean" },
@@ -87,6 +90,8 @@ function normalize(parsed) {
         const fam = {
           name: String(f?.name || "").trim(),
           phone: String(f?.phone || "").trim(),
+          hotel: String(f?.hotel || "").trim(),
+          room: String(f?.room || "").trim(),
           ad: num(f?.ad),
           chd: num(f?.chd),
         };
