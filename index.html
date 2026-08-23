@@ -1808,7 +1808,8 @@ function phoneDigits(phone){ return (phone||'').replace(/\D/g,''); }
 /* телефон без тире и прочих разделителей — иначе WhatsApp не распознаёт номер */
 function cleanPhone(p){ return (p||'').replace(/[-–—_.,()\/]+/g,' ').replace(/\s+/g,' ').trim(); }
 
-/* список туристов: имя | телефон | отель | номер комнаты | взрослые и дети */
+/* одна семья — одна строка: имя | телефон Отель: X Номер комнаты: Y состав семьи;
+   между семьями пустая строка, чтобы список не сливался */
 function formatTravelers(text){
   return (text||'').split('\n').map(function(line){
     line = line.trim();
@@ -1824,7 +1825,7 @@ function formatTravelers(text){
     if(hotel)  out.push('*Отель*: '+hotel);
     if(room)   out.push('*Номер комнаты*: '+room);
     if(people) out.push(people);
-    return out.join('\n');
+    return out.join(' ');
   }).filter(function(b){ return b; }).join('\n\n');
 }
 
