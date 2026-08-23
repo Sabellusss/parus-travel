@@ -1808,8 +1808,8 @@ function phoneDigits(phone){ return (phone||'').replace(/\D/g,''); }
 /* телефон без тире и прочих разделителей — иначе WhatsApp не распознаёт номер */
 function cleanPhone(p){ return (p||'').replace(/[-–—_.,()\/]+/g,' ').replace(/\s+/g,' ').trim(); }
 
-/* одна семья — одна строка: имя | телефон Отель: X Номер комнаты: Y состав семьи;
-   между семьями пустая строка, чтобы список не сливался */
+/* блок на семью: «имя | телефон», «Отель: X», «Номер комнаты: Y | состав семьи»;
+   между семьями пустая строка, чтобы список не мозолил глаза */
 function formatTravelers(text){
   return (text||'').split('\n').map(function(line){
     line = line.trim();
@@ -1822,10 +1822,12 @@ function formatTravelers(text){
     var room  = (parts[3]||'').trim();
     var people= (parts[4]||'').trim();
     var out=[ phone ? name+' | '+phone : name ];
-    if(hotel)  out.push('*Отель*: '+hotel);
-    if(room)   out.push('*Номер комнаты*: '+room);
-    if(people) out.push(people);
-    return out.join(' ');
+    if(hotel) out.push('Отель: '+hotel);
+    var third=[];
+    if(room)   third.push('Номер комнаты: '+room);
+    if(people) third.push(people);
+    if(third.length) out.push(third.join(' | '));
+    return out.join('\n');
   }).filter(function(b){ return b; }).join('\n\n');
 }
 
@@ -2517,7 +2519,10 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
         var ppl=[];
         if(f.ad) ppl.push(f.ad+' взр');
         if(f.chd) ppl.push(f.chd+' дет');
-        lines.push((nm||'Без имени') + (ph?': '+ph:'') + (ppl.length?' ('+ppl.join(', ')+')':''));
+        /* бланк гида ждёт: имя | телефон | отель | номер комнаты | состав семьи */
+        var cells=[ nm||'Без имени', ph, (f.hotel||'').trim(), (f.room||'').trim(), ppl.join(', ') ];
+        while(cells.length && !cells[cells.length-1]) cells.pop();
+        lines.push(cells.join(' | '));
       });
     });
     return lines;
