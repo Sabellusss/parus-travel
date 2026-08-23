@@ -1077,7 +1077,7 @@ ALENA ALENA: +7 951 420-33-88"></textarea>
   <div class="chap-head rv">
     <div class="chap-no">Глава V</div>
     <h2 class="chap-title">Скан</h2>
-    <p class="chap-sub">Фото таблицы — списка туристов, брони, прайса — превращается в текст и CSV прямо здесь.</p>
+    <p class="chap-sub">Фото таблицы — списка туристов, брони, прайса — превращается в текст и CSV прямо здесь. А затем ИИ сам разносит туристов по турам в Главу I.</p>
     <div class="flourish" aria-hidden="true">❖</div>
   </div>
 
@@ -1107,6 +1107,30 @@ ALENA ALENA: +7 951 420-33-88"></textarea>
         <button class="btn" id="scanCsvBtn">Скачать CSV</button>
         <button class="btn ghost" id="scanCopyBtn">Копировать</button>
         <button class="btn ghost" id="scanResetBtn">Новое фото</button>
+      </div>
+
+      <!-- ИИ-разнесение распознанной таблицы по ведомостям Главы I -->
+      <div id="scanAi" style="margin-top:28px;border-top:1px solid var(--line2);padding-top:22px">
+        <div class="card-t">Разнесение по учёту<small>ИИ сам находит тур в таблице и считает, сколько где взрослых и детей</small></div>
+
+        <div id="scanAiBusy" style="display:none;margin-top:14px;text-align:center;color:var(--gold);font-family:var(--fu);letter-spacing:.14em;font-size:13px;text-transform:uppercase">
+          Считаю туристов по турам…
+        </div>
+
+        <div id="scanAiErr" style="display:none;margin-top:14px;border:1px dashed rgba(192,22,35,.55);color:#ff9d8a;padding:12px 14px;font-size:13px"></div>
+
+        <div id="scanAiOut" style="display:none;margin-top:14px"></div>
+
+        <div class="toolbar" id="scanAiActions" style="margin-top:16px;display:none">
+          <button class="btn red" id="scanAiAdd">✦ Добавить в учёт</button>
+          <button class="btn ghost" id="scanAiReplace">Заменить ведомости</button>
+          <button class="btn ghost" id="scanAiRetry">Разнести заново</button>
+        </div>
+
+        <label class="ck" id="scanAiAutoWrap" style="margin-top:16px;align-items:center;gap:10px">
+          <input type="checkbox" id="scanAiAuto"><i>✦</i>
+          <span style="font-size:13px;color:var(--mut);font-style:italic">Заполнять учёт автоматически сразу после скана</span>
+        </label>
       </div>
     </div>
   </div>
@@ -1564,13 +1588,86 @@ $('#bzExtra').addEventListener('input', calcBahoZoklet);
 $('#bzExtra').addEventListener('change', calcBahoZoklet);
 
 /* ─────── вкладки ─────── */
-document.querySelectorAll('.tab').forEach(function(t){
-  t.addEventListener('click',function(){
-    document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on');x.setAttribute('aria-selected','false');});
-    t.classList.add('on'); t.setAttribute('aria-selected','true');
-    document.querySelectorAll('.pane').forEach(function(p){ p.hidden = p.id!==t.dataset.t; });
+function showPane(id){
+  document.querySelectorAll('.tab').forEach(function(x){
+    var on = x.dataset.t===id;
+    x.classList.toggle('on', on);
+    x.setAttribute('aria-selected', on?'true':'false');
   });
+  document.querySelectorAll('.pane').forEach(function(p){ p.hidden = p.id!==id; });
+}
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click',function(){ showPane(t.dataset.t); });
 });
+
+/* ─────── ГЛАВА V → ГЛАВА I · приём разнесения от ИИ ───────
+   Скан отдаёт сюда готовые группы вида {tour:'dalat', families:[{ad,chd,...}]},
+   а здесь они раскладываются по ведомостям и итоги пересчитываются.
+   mode: 'add' — дописать к тому, что уже есть; 'replace' — заменить ведомость тура. */
+var UCHET_TOURS = {
+  dalat:         { label:'Далат',            pane:'panel-dalat'   },
+  islands_north: { label:'Северные острова', pane:'panel-isl'     },
+  islands_south: { label:'Южные острова',    pane:'panel-yangbey' },
+  baho:          { label:'Бахо',             pane:'panel-baho'    },
+  zoklet:        { label:'Зоклет',           pane:'panel-baho'    }
+};
+function uchetApply(groups, mode){
+  var replace = (mode==='replace');
+  var out = { applied:[], pane:null };
+  var need = { dalat:false, isl:false, bz:false, yb:false };
+
+  (groups||[]).forEach(function(g){
+    var meta = UCHET_TOURS[g && g.tour];
+    var fams = (g && Array.isArray(g.families)) ? g.families : [];
+    if(!meta || !fams.length) return;
+    var ad=0, chd=0;
+
+    if(g.tour==='dalat'){
+      if(replace) D.fam.length=0;
+      fams.forEach(function(f){
+        var a=clamp99(f.ad), c=clamp99(f.chd); ad+=a; chd+=c;
+        D.fam.push({ ad:a, chd:c, full:!!f.full,
+          alpin:!!(f.full||f.alpin), most:!!(f.full||f.most),
+          kanat:!!(f.full||f.kanat), train:!!(f.full||f.train) });
+      });
+      need.dalat=true;
+    }else if(g.tour==='islands_north'){
+      if(replace) I.fam.length=0;
+      fams.forEach(function(f){
+        var a=clamp99(f.ad), c=clamp99(f.chd); ad+=a; chd+=c;
+        I.fam.push({ ad:a, chd:c });
+      });
+      need.isl=true;
+    }else if(g.tour==='baho' || g.tour==='zoklet'){
+      var grp = (g.tour==='baho') ? Baho : Zoklet;
+      if(replace) grp.state.fam.length=0;
+      fams.forEach(function(f){
+        var a=clamp99(f.ad), c=clamp99(f.chd); ad+=a; chd+=c;
+        grp.state.fam.push({ ad:a, chd:c });
+      });
+      need.bz=true;
+    }else if(g.tour==='islands_south'){
+      /* у Южных островов нет ведомости семей — там считается общее число туристов X */
+      fams.forEach(function(f){ ad+=clamp99(f.ad); chd+=clamp99(f.chd); });
+      var yx=document.getElementById('y-x');
+      var cur = replace ? 0 : Math.max(0, parseInt(yx.value,10)||0);
+      yx.value = cur + ad + chd;
+      need.yb=true;
+    }
+
+    out.applied.push({ tour:g.tour, label:meta.label, fam:fams.length, ad:ad, chd:chd });
+    if(!out.pane) out.pane = meta.pane;
+  });
+
+  if(need.dalat) renderDalat();
+  if(need.isl)   renderIsl();
+  if(need.bz){ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet); }
+  if(need.yb)    calcYangbey();
+  if(out.pane)   showPane(out.pane);
+  saveState();
+  return out;
+}
+window.ParusUchet = { tours: UCHET_TOURS, apply: uchetApply, toast: toast };
 
 /* ─────── скролл: прогресс + spy глав (throttled через rAF) ─────── */
 var navLinks=Array.prototype.slice.call(document.querySelectorAll('.nav [data-spy]'));
@@ -2009,6 +2106,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
         if(!data.columns.length) throw new Error('На фото не найдена таблица. Попробуйте снимок покрупнее и чётче.');
         current=data;
         renderTable(data);
+        runPlan(data);
       }).catch(function(e){
         busy.style.display='none';
         showErr(e.message || 'Не удалось распознать изображение.');
@@ -2030,7 +2128,123 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
 
   document.getElementById('scanResetBtn').addEventListener('click', function(){
     current=null; result.style.display='none'; err.style.display='none'; input.value='';
+    aiReset();
   });
+
+  /* ─────── ИИ-разнесение распознанной таблицы по ведомостям Главы I ───────
+     Отдельным дешёвым текстовым запросом: фото уже превращено в таблицу,
+     здесь модель только определяет тур и считает людей. */
+  var aiBusy=document.getElementById('scanAiBusy');
+  var aiErrBox=document.getElementById('scanAiErr');
+  var aiOut=document.getElementById('scanAiOut');
+  var aiActions=document.getElementById('scanAiActions');
+  var aiAuto=document.getElementById('scanAiAuto');
+  var plan=null;
+  var AUTO_KEY='parusScanAutoApply_v1';
+
+  try{ aiAuto.checked = localStorage.getItem(AUTO_KEY)==='1'; }catch(e){}
+  aiAuto.addEventListener('change', function(){
+    try{ localStorage.setItem(AUTO_KEY, aiAuto.checked?'1':'0'); }catch(e){}
+  });
+
+  var TOUR_LABELS={ dalat:'Далат', islands_north:'Северные острова', islands_south:'Южные острова',
+                    baho:'Бахо', zoklet:'Зоклет', unknown:'Тур не определён' };
+  var MARK_LABELS={ full:'Full', alpin:'сани', most:'мост', kanat:'канат', train:'поезд' };
+
+  function aiReset(){
+    plan=null;
+    aiBusy.style.display='none';
+    aiErrBox.style.display='none';
+    aiOut.style.display='none';
+    aiOut.innerHTML='';
+    aiActions.style.display='none';
+  }
+  function aiShowErr(msg){
+    aiBusy.style.display='none';
+    aiErrBox.textContent=msg;
+    aiErrBox.style.display='block';
+  }
+
+  function runPlan(data){
+    aiReset();
+    aiBusy.style.display='block';
+    fetch('/api/plan-uchet', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ columns:data.columns, rows:data.rows })
+    }).then(function(r){
+      return r.json().catch(function(){ return null; }).then(function(res){
+        if(!r.ok) throw new Error((res && res.error) || ('Сервер вернул ошибку ('+r.status+')'));
+        return res;
+      });
+    }).then(function(res){
+      aiBusy.style.display='none';
+      if(!res || !Array.isArray(res.groups) || !res.groups.length) throw new Error('ИИ не нашёл в таблице туристов.');
+      plan=res;
+      renderPlan(res);
+      if(aiAuto.checked && hasKnown(res)) applyPlan('add', true);
+    }).catch(function(e){
+      aiShowErr(e.message || 'Не удалось разнести таблицу по турам.');
+    });
+  }
+
+  function hasKnown(res){
+    return (res.groups||[]).some(function(g){ return g.tour!=='unknown'; });
+  }
+
+  function renderPlan(res){
+    var groups=res.groups||[];
+    var chips=groups.map(function(g){
+      return '<span class="lg-chip '+(g.tour==='unknown'?'warn':'auto')+'">'
+        + esc(TOUR_LABELS[g.tour]||g.tour) + ' · ' + g.families.length + ' сем. · '
+        + g.ad + ' взр · ' + g.chd + ' дет</span>';
+    }).join('');
+
+    var body=groups.map(function(g){
+      return g.families.map(function(f){
+        var marks=Object.keys(MARK_LABELS).filter(function(k){ return f[k]; })
+                        .map(function(k){ return MARK_LABELS[k]; }).join(', ');
+        return '<tr'+(g.tour==='unknown'?' class="incomplete"':'')+'>'
+          + '<td>'+esc(TOUR_LABELS[g.tour]||g.tour)+'</td>'
+          + '<td>'+(f.name?esc(f.name):'—')+'</td>'
+          + '<td>'+f.ad+'</td><td>'+f.chd+'</td>'
+          + '<td>'+(marks||'—')+'</td></tr>';
+      }).join('');
+    }).join('');
+
+    var notes=[];
+    if(res.notes) notes.push(esc(res.notes));
+    if(groups.some(function(g){ return g.tour==='unknown'; })) notes.push('Строки без узнанного тура в ведомости не попадут — внесите их вручную.');
+    if(groups.some(function(g){ return g.tour==='islands_south'; })) notes.push('Южные острова считаются одним числом туристов — взрослые и дети складываются в поле «Количество туристов X».');
+
+    aiOut.innerHTML='<div class="legend" style="justify-content:flex-start;margin-bottom:0">'+chips+'</div>'
+      + '<div class="tbl-wrap" style="margin-top:14px"><table class="grid">'
+      + '<thead><tr><th>Тур</th><th>Семья</th><th>AD</th><th>CHD</th><th>Отметки</th></tr></thead>'
+      + '<tbody>'+body+'</tbody></table></div>'
+      + notes.map(function(n){ return '<p class="price-note">'+n+'</p>'; }).join('');
+    aiOut.style.display='block';
+    aiActions.style.display = hasKnown(res) ? 'flex' : 'none';
+  }
+
+  function applyPlan(mode, silentScroll){
+    if(!plan || !window.ParusUchet) return;
+    var groups=(plan.groups||[]).filter(function(g){ return g.tour!=='unknown'; });
+    if(!groups.length) return;
+    var res=window.ParusUchet.apply(groups, mode);
+    if(!res.applied.length) return;
+    var ad=0, chd=0;
+    res.applied.forEach(function(a){ ad+=a.ad; chd+=a.chd; });
+    var where=res.applied.map(function(a){ return a.label; }).join(', ');
+    window.ParusUchet.toast((mode==='replace'?'Заменено: ':'Внесено в учёт: ')+where+' · '+ad+' взр, '+chd+' дет');
+    if(!silentScroll){
+      var target=document.getElementById('uchet');
+      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  }
+
+  document.getElementById('scanAiAdd').addEventListener('click', function(){ applyPlan('add'); });
+  document.getElementById('scanAiReplace').addEventListener('click', function(){ applyPlan('replace'); });
+  document.getElementById('scanAiRetry').addEventListener('click', function(){ if(current) runPlan(current); });
 
   document.getElementById('scanCsvBtn').addEventListener('click', function(){
     if(!current) return;
