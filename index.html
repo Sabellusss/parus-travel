@@ -496,6 +496,7 @@ footer svg{width:64px;color:var(--gold)}
     <button class="tab on" data-t="panel-dalat" role="tab" aria-selected="true">Далат<small>сбор 05:30 · возврат ~20:00</small></button>
     <button class="tab" data-t="panel-isl" role="tab" aria-selected="false">Северные острова<small>сбор 07:00 · возврат ~16:00</small></button>
     <button class="tab" data-t="panel-yangbey" role="tab" aria-selected="false">Южные острова<small>сбор 07:00 · возврат ~19:00</small></button>
+    <button class="tab" data-t="panel-ygb" role="tab" aria-selected="false">Янгбей<small>сбор 07:00 · возврат ~19:00</small></button>
     <button class="tab" data-t="panel-baho" role="tab" aria-selected="false">Бахо — Зоклет<small>время уточняется</small></button>
   </div>
 
@@ -693,6 +694,47 @@ footer svg{width:64px;color:var(--gold)}
           </div>
           <span class="t-value" id="yangbeyFruitTotal">0 ₫</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ЯНГБЕЙ (сам тур; вкладка выше с id panel-yangbey — это Южные острова, историческое имя) -->
+  <div class="pane" id="panel-ygb" hidden>
+    <div class="card pad rv">
+      <h3 class="card-t">Ведомость семей · Янгбей<small>Билет и еда считаются отдельно, для взрослых и детей — по своей цене.</small></h3>
+      <div class="toolbar">
+        <button class="btn red" id="ygbAdd">✦ Добавить семью</button>
+        <button class="btn ghost" id="ygbZeroP">Очистить список туристов</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="grid isl">
+          <thead><tr><th>№</th><th>AD</th><th>CHD</th><th>Сумма</th><th></th></tr></thead>
+          <tbody id="ygbBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="calc-grid">
+      <div class="card pad rv d1">
+        <h3 class="card-t">Расчёт стоимости · Янгбей<small>Билет и еда — отдельными строками, скидка за группу считается сама.</small></h3>
+        <div class="price-settings">
+          <div class="field"><label>Билет, взрослый</label><input type="number" id="ygb-ticketAd" value="150000" step="10000" min="0"></div>
+          <div class="field"><label>Еда, взрослый</label><input type="number" id="ygb-foodAd" value="120000" step="10000" min="0"></div>
+          <div class="field"><label>Билет, ребёнок</label><input type="number" id="ygb-ticketChd" value="100000" step="10000" min="0"></div>
+          <div class="field"><label>Еда, ребёнок</label><input type="number" id="ygb-foodChd" value="90000" step="10000" min="0"></div>
+          <div class="field"><label>Бесплатный билет на каждые, чел</label><input type="number" id="ygb-freeStep" value="10" step="1" min="0"></div>
+        </div>
+        <p class="price-note">Набралось десять человек — один билет бесплатно: платим за 9 из 10, за 18 из 20 и так далее. Бесплатный билет списывается с самого дорогого — сначала взрослые. Еда считается на всех. Поставьте 0, если скидки нет.</p>
+        <div class="cards" id="ygbCards"></div>
+      </div>
+      <div class="card pad rv d2" aria-live="polite">
+        <h3 class="card-t">Итог · Янгбей</h3>
+        <div class="i-form" id="ygbFormula"></div>
+        <div class="tot big"><b>Итого к оплате</b><span class="v" id="ygbGrand">0 ₫</span></div>
+        <div class="extra-row">
+          <label for="ygbExtra">Дополнительная сумма (+/−)</label>
+          <input class="num w150" type="number" id="ygbExtra" value="0" step="10000">
+        </div>
+        <div class="tot big"><b>Итого с доплатой</b><span class="v" id="ygbFinal">0 ₫</span></div>
       </div>
     </div>
   </div>
@@ -1077,12 +1119,12 @@ ALENA ALENA | +7 951 420-33-88 | Sunrise | 315 | 1 взрослый"></textarea>
   <div class="chap-head rv">
     <div class="chap-no">Глава V</div>
     <h2 class="chap-title">Скан</h2>
-    <p class="chap-sub">Фото таблицы — списка туристов, брони, прайса — превращается в текст и CSV прямо здесь. А затем ИИ сам разносит туристов по турам в Главу I.</p>
+    <p class="chap-sub">Снимок таблицы — списка туристов, брони, прайса — вставляется прямо из буфера обмена и превращается в текст и CSV. А затем ИИ сам разносит туристов по турам в Главу I и собирает готовые сообщения партнёрам в Далате.</p>
     <div class="flourish" aria-hidden="true">❖</div>
   </div>
 
   <div class="card pad rv" style="max-width:820px;margin:0 auto">
-    <div class="card-t">Загрузка снимка<small>JPG · PNG · WEBP, до 18 МБ</small></div>
+    <div class="card-t">Снимок таблицы<small>из буфера обмена · JPG · PNG · WEBP, до 18 МБ</small></div>
 
     <div style="margin-bottom:16px">
       <div style="font-family:var(--fu);letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--mut);margin-bottom:10px">Какой тур на фото</div>
@@ -1091,17 +1133,26 @@ ALENA ALENA | +7 951 420-33-88 | Sunrise | 315 | 1 взрослый"></textarea>
         <button class="btn ghost" data-tour="dalat" type="button">Далат</button>
         <button class="btn ghost" data-tour="islands_north" type="button">Северные острова</button>
         <button class="btn ghost" data-tour="islands_south" type="button">Южные острова</button>
+        <button class="btn ghost" data-tour="yangbay" type="button">Янгбей</button>
         <button class="btn ghost" data-tour="baho" type="button">Бахо</button>
         <button class="btn ghost" data-tour="zoklet" type="button">Зоклет</button>
       </div>
       <p class="price-note" style="text-align:left;margin-top:8px">Если на фото тур написан латиницей или сокращённо, укажите его сами — ИИ отнесёт туда все строки, кроме тех, где прямо назван другой тур.</p>
     </div>
 
-    <div id="scanDrop" style="border:1px dashed var(--line2);padding:34px 18px;text-align:center;cursor:pointer;transition:.25s">
-      <div style="font-family:var(--fu);letter-spacing:.16em;color:var(--gold);font-size:13px;text-transform:uppercase;margin-bottom:6px">Нажмите или перетащите фото</div>
-      <div style="color:var(--mut);font-size:13px;font-style:italic">Таблица распознаётся вместе со структурой столбцов</div>
+    <div id="scanDrop" style="border:1px dashed var(--line2);padding:30px 18px;text-align:center;cursor:pointer;transition:.25s">
+      <div style="font-family:var(--fu);letter-spacing:.16em;color:var(--gold);font-size:13px;text-transform:uppercase;margin-bottom:6px">Вставьте снимок из буфера обмена</div>
+      <div style="color:var(--mut);font-size:13px;font-style:italic">Ctrl + V или ⌘ + V прямо на странице — скачивать файл на устройство не нужно</div>
+      <div class="toolbar" id="scanPasteBar" style="justify-content:center;margin:16px 0 0">
+        <button class="btn" id="scanPasteBtn" type="button">📋 Вставить из буфера</button>
+        <button class="btn ghost" id="scanPickBtn" type="button">Выбрать файл</button>
+      </div>
+      <div id="scanThumb" style="display:none;margin-top:16px">
+        <img id="scanThumbImg" alt="Вставленный снимок" style="max-width:230px;max-height:160px;border:1px solid var(--line2);display:block;margin:0 auto">
+      </div>
       <input type="file" id="scanFile" accept="image/png,image/jpeg,image/webp" style="display:none">
     </div>
+    <p class="price-note" style="text-align:left;margin-top:8px">Снимок можно и перетащить в рамку. На телефоне: скопируйте картинку в галерее или переписке и нажмите «Вставить из буфера» — файл на устройстве не нужен.</p>
 
     <label class="ck" style="margin-top:14px;align-items:center;gap:10px">
       <input type="checkbox" id="scanQuality"><i>✦</i>
@@ -1174,6 +1225,71 @@ ALENA ALENA | +7 951 420-33-88 | Sunrise | 315 | 1 взрослый"></textarea>
           </div>
           <p class="price-note" id="scanGdNote" style="display:none;text-align:left"></p>
         </div>
+
+        <!-- готовые сообщения партнёрам по Далату: их копируют и вставляют в чат -->
+        <div id="scanMsg" style="display:none;margin-top:26px;border-top:1px solid var(--line2);padding-top:22px">
+          <div class="card-t">Сообщения партнёрам<small>Далат: Ви Датанли, мост и транспортная компания — текст уже собран</small></div>
+
+          <div class="i-grid" style="margin-top:14px">
+            <div class="field"><label>Тур</label><select id="msgTour"></select></div>
+            <div class="field"><label>Дата тура</label><input type="date" id="msgDate"></div>
+            <div class="field"><label>Гид</label>
+              <input type="text" id="msgGuide" list="msgGuideList" placeholder="Artem" autocomplete="off">
+              <datalist id="msgGuideList"></datalist>
+            </div>
+            <div class="field"><label>Телефон гида</label><input type="text" id="msgPhone" placeholder="+840327539267" autocomplete="off"></div>
+            <div class="field"><label>Отель, где подбирают гида</label><input type="text" id="msgHotel" placeholder="Tui Blue" autocomplete="off"></div>
+            <div class="field"><label>Куда едем — для транспорта</label><input type="text" id="msgPlace" placeholder="Dalat" autocomplete="off"></div>
+          </div>
+
+          <div class="i-grid" style="margin-top:12px">
+            <div class="field"><label>Взрослых</label><input type="number" id="msgAd" min="0" max="99" step="1"></div>
+            <div class="field"><label>Детей</label><input type="number" id="msgChd" min="0" max="99" step="1"></div>
+            <div class="field msg-dalat"><label>Сани — человек</label><input type="number" id="msgAlpin" min="0" max="99" step="1"></div>
+            <div class="field msg-dalat"><label>Канат — человек</label><input type="number" id="msgKanat" min="0" max="99" step="1"></div>
+            <div class="field msg-dalat"><label>Мост — взрослых</label><input type="number" id="msgMostAd" min="0" max="99" step="1"></div>
+            <div class="field msg-dalat"><label>Мост — детей</label><input type="number" id="msgMostChd" min="0" max="99" step="1"></div>
+            <div class="field msg-dalat"><label>Поезд — взрослых</label><input type="number" id="msgTrainAd" min="0" max="99" step="1"></div>
+            <div class="field msg-dalat"><label>Поезд — детей</label><input type="number" id="msgTrainChd" min="0" max="99" step="1"></div>
+            <div class="field msg-ygb"><label>Класс</label><input type="text" id="msgVip" placeholder="VIP 2" autocomplete="off"></div>
+            <div class="field msg-ygb"><label>Время</label><input type="text" id="msgTime" placeholder="16:10" autocomplete="off"></div>
+          </div>
+
+          <div class="toolbar" style="margin-top:14px">
+            <button class="btn ghost" id="msgFromScan" type="button">Числа из скана</button>
+            <button class="btn ghost" id="msgFromUchet" type="button">Числа из учёта</button>
+            <button class="btn red" id="msgCopyAll" type="button">📋 Скопировать все</button>
+          </div>
+          <p class="price-note" id="msgNote" style="text-align:left"></p>
+
+          <div style="margin-top:8px;display:grid;gap:18px">
+            <div id="msgCardBus">
+              <div class="card-t" style="margin-bottom:10px">Транспортная компания<small>вьетнамский · сколько человек, гид и где его подбирают</small></div>
+              <div class="guide-msg-box" id="msgBusBox"></div>
+              <div class="toolbar" style="margin:10px 0 0"><button class="btn" type="button" data-msg="bus">📋 Скопировать</button></div>
+            </div>
+            <div id="msgCardVi" class="msg-dalat">
+              <div class="card-t" style="margin-bottom:10px">Ви Датанли<small>вьетнамский · вход, обед, глиняный туннель, сани, канат</small></div>
+              <div class="guide-msg-box" id="msgViBox"></div>
+              <div class="toolbar" style="margin:10px 0 0"><button class="btn" type="button" data-msg="vi">📋 Скопировать</button></div>
+            </div>
+            <div id="msgCardMost" class="msg-dalat">
+              <div class="card-t" style="margin-bottom:10px">Мост<small>английский · сколько взрослых и детей идёт на мост</small></div>
+              <div class="guide-msg-box" id="msgMostBox"></div>
+              <div class="toolbar" style="margin:10px 0 0"><button class="btn" type="button" data-msg="most">📋 Скопировать</button></div>
+            </div>
+            <div id="msgCardTrain" class="msg-dalat">
+              <div class="card-t" style="margin-bottom:10px">Поезд<small>вьетнамский · состав группы, имя и телефон гида</small></div>
+              <div class="guide-msg-box" id="msgTrainBox"></div>
+              <div class="toolbar" style="margin:10px 0 0"><button class="btn" type="button" data-msg="train">📋 Скопировать</button></div>
+            </div>
+            <div id="msgCardYgb" class="msg-ygb">
+              <div class="card-t" style="margin-bottom:10px">Янгбей<small>вьетнамский · класс и время</small></div>
+              <div class="guide-msg-box" id="msgYgbBox"></div>
+              <div class="toolbar" style="margin:10px 0 0"><button class="btn" type="button" data-msg="ygb">📋 Скопировать</button></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1214,6 +1330,7 @@ function saveState(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       dFam:D.fam, iFam:I.fam, prices:P, iPrices:I.p, iExtra:I.extra, yangbey:YB,
+      ygbFam:YGB.fam, ygbPrices:YGB.p, ygbExtra:YGB.extra,
       bahoFam:Baho.state.fam, bahoPrices:Baho.state.p,
       zokletFam:Zoklet.state.fam, zokletPrices:Zoklet.state.p,
       bzExtra:BZ.extra
@@ -1552,6 +1669,106 @@ function calcYangbey(){
   el.addEventListener('change',calcYangbey);
 });
 
+/* ─────── ГЛАВА I · ЯНГБЕЙ ───────
+   Считается билет и еда отдельно, у взрослых и детей своя цена.
+   Группа больше десяти человек получает один билет бесплатно: на каждые
+   10 платных приходится 1 даровой, то есть за 11 человек платим 10 билетов,
+   за 22 — двадцать. Еда идёт на всех, скидка её не касается.
+   Внимание: переменная YB выше — это Южные острова (историческое имя). */
+var YGB={ fam:[], p:{ticketAd:150000, foodAd:120000, ticketChd:100000, foodChd:90000, freeStep:10}, extra:0 };
+
+function ygbRow(f,i){
+  return '<tr class="fam" data-i="'+i+'"><td class="idx">'+(i+1)+'</td>'
+    +'<td><input class="num" type="number" data-k="ad" min="0" max="99" value="'+f.ad+'"></td>'
+    +'<td><input class="num" type="number" data-k="chd" min="0" max="99" value="'+f.chd+'"></td>'
+    +'<td class="sum" data-sum>—</td>'
+    +'<td><button class="del" type="button" title="Удалить семью" aria-label="Удалить семью">✕</button></td></tr>';
+}
+function renderYgb(){
+  $('#ygbBody').innerHTML = YGB.fam.length
+    ? YGB.fam.map(ygbRow).join('')
+    : '<tr><td class="empty" colspan="5">Семей пока нет — нажмите «Добавить семью»</td></tr>';
+  bindYgb();
+  calcYgb();
+}
+function bindYgb(){
+  var rows=document.querySelectorAll('#ygbBody tr.fam');
+  Array.prototype.forEach.call(rows, function(tr){
+    var idx=parseInt(tr.dataset.i,10);
+    Array.prototype.forEach.call(tr.querySelectorAll('input'), function(inp){
+      var h=function(){
+        if(!YGB.fam[idx]) return;
+        YGB.fam[idx][inp.dataset.k]=clamp99(inp.value);
+        calcYgb();
+      };
+      inp.addEventListener('input', h);
+      inp.addEventListener('change', h);
+    });
+    var del=tr.querySelector('.del');
+    if(del) del.addEventListener('click', function(){ YGB.fam.splice(idx,1); renderYgb(); toast('Семья удалена'); });
+  });
+}
+function readYgbPrices(){
+  ['ticketAd','foodAd','ticketChd','foodChd','freeStep'].forEach(function(k){
+    YGB.p[k]=Math.max(0,getVal('ygb-'+k));
+  });
+  YGB.extra=getVal('ygbExtra');
+}
+
+/* Бесплатный билет даётся на каждые 10 человек: набралось 10 — платим за 9.
+   Даровые билеты списываются с самых дорогих: сначала взрослые, потом детские. */
+function ygbFree(people){
+  var step=YGB.p.freeStep;
+  if(step<1) return 0;
+  return Math.floor(people/step);
+}
+function calcYgb(){
+  readYgbPrices();
+  var tAd=0, tCh=0;
+  var sums=YGB.fam.map(function(f){
+    tAd+=f.ad; tCh+=f.chd;
+    return f.ad*(YGB.p.ticketAd+YGB.p.foodAd) + f.chd*(YGB.p.ticketChd+YGB.p.foodChd);
+  });
+  document.querySelectorAll('#ygbBody tr.fam').forEach(function(rw,i){ rw.querySelector('[data-sum]').textContent=fmt(sums[i]); });
+
+  var people=tAd+tCh;
+  var free=Math.min(ygbFree(people), people);
+  var freeAd=Math.min(free, tAd), freeChd=Math.min(free-freeAd, tCh);
+  var freeSum=freeAd*YGB.p.ticketAd + freeChd*YGB.p.ticketChd;
+
+  var ticketFull=tAd*YGB.p.ticketAd + tCh*YGB.p.ticketChd;
+  var ticketTotal=ticketFull-freeSum;
+  var foodTotal=tAd*YGB.p.foodAd + tCh*YGB.p.foodChd;
+  var grand=ticketTotal+foodTotal;
+
+  var freeMath = free
+    ? people+' чел − '+free+' бесплатн'+(free===1?'ый':'ых')+' = платим за '+(people-free)
+    : (YGB.p.freeStep ? 'нужно набрать '+YGB.p.freeStep+' человек' : 'скидка отключена');
+
+  $('#ygbCards').innerHTML =
+      mcard('Билеты', tAd+' взрослых + '+tCh+' детей', fmt(ticketTotal),
+            tAd+' × '+fmtN(YGB.p.ticketAd)+' + '+tCh+' × '+fmtN(YGB.p.ticketChd)
+            + (freeSum ? ' − '+fmtN(freeSum)+' даром' : '') + ' = '+fmtN(ticketTotal))
+    + mcard('Еда', tAd+' взрослых + '+tCh+' детей', fmt(foodTotal),
+            tAd+' × '+fmtN(YGB.p.foodAd)+' + '+tCh+' × '+fmtN(YGB.p.foodChd)+' = '+fmtN(foodTotal))
+    + mcard('Бесплатные билеты', free+' из '+people, fmt(freeSum), freeMath);
+
+  $('#ygbFormula').textContent = 'билеты '+fmtN(ticketTotal)+' + еда '+fmtN(foodTotal)+' = '+fmtN(grand)+' ₫';
+  tween($('#ygbGrand'),grand,true);
+  tween($('#ygbFinal'),grand+YGB.extra,true);
+  saveState();
+}
+
+$('#ygbAdd').addEventListener('click',function(){ YGB.fam.push({ad:2,chd:0}); renderYgb(); toast('Семья добавлена'); });
+armConfirmBtn($('#ygbZeroP'), 'Очистить список туристов', function(){
+  clearFams(YGB.fam, renderYgb);
+});
+['ygb-ticketAd','ygb-foodAd','ygb-ticketChd','ygb-foodChd','ygb-freeStep','ygbExtra'].forEach(function(id){
+  var el=document.getElementById(id);
+  el.addEventListener('input', calcYgb);
+  el.addEventListener('change', calcYgb);
+});
+
 /* ─────── ГЛАВА I · УНИВЕРСАЛЬНЫЙ КОНСТРУКТОР ВЕДОМОСТИ ───────
    Одно "место" = таблица семей (AD/CHD) + своя цена взрослый/ребёнок.
    Несколько мест в одной вкладке можно сложить в один общий итог (как Бахо — Зоклет).
@@ -1661,13 +1878,14 @@ var UCHET_TOURS = {
   dalat:         { label:'Далат',            pane:'panel-dalat'   },
   islands_north: { label:'Северные острова', pane:'panel-isl'     },
   islands_south: { label:'Южные острова',    pane:'panel-yangbey' },
+  yangbay:       { label:'Янгбей',           pane:'panel-ygb'     },
   baho:          { label:'Бахо',             pane:'panel-baho'    },
   zoklet:        { label:'Зоклет',           pane:'panel-baho'    }
 };
 function uchetApply(groups, mode){
   var replace = (mode==='replace');
   var out = { applied:[], pane:null };
-  var need = { dalat:false, isl:false, bz:false, yb:false };
+  var need = { dalat:false, isl:false, bz:false, yb:false, ygb:false };
 
   (groups||[]).forEach(function(g){
     var meta = UCHET_TOURS[g && g.tour];
@@ -1684,6 +1902,13 @@ function uchetApply(groups, mode){
           kanat:!!(f.full||f.kanat), train:!!(f.full||f.train) });
       });
       need.dalat=true;
+    }else if(g.tour==='yangbay'){
+      if(replace) YGB.fam.length=0;
+      fams.forEach(function(f){
+        var a=clamp99(f.ad), c=clamp99(f.chd); ad+=a; chd+=c;
+        YGB.fam.push({ ad:a, chd:c });
+      });
+      need.ygb=true;
     }else if(g.tour==='islands_north'){
       if(replace) I.fam.length=0;
       fams.forEach(function(f){
@@ -1714,13 +1939,44 @@ function uchetApply(groups, mode){
 
   if(need.dalat) renderDalat();
   if(need.isl)   renderIsl();
+  if(need.ygb)   renderYgb();
   if(need.bz){ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet); }
   if(need.yb)    calcYangbey();
   if(out.pane)   showPane(out.pane);
   saveState();
   return out;
 }
-window.ParusUchet = { tours: UCHET_TOURS, apply: uchetApply, toast: toast };
+/* Числа для сообщений партнёрам: сколько человек в выбранном туре и сколько
+   идёт на каждую опцию Далата. Берутся из живой ведомости — после ручных правок
+   они точнее, чем скан. Опции есть только у Далата, у остальных туров нули. */
+function tourCounts(tour){
+  var c={ ad:0, chd:0, alpin:0, kanat:0, mostAd:0, mostChd:0, trainAd:0, trainChd:0 };
+  var add=function(f){ c.ad+=clamp99(f.ad); c.chd+=clamp99(f.chd); };
+
+  if(tour==='dalat'){
+    D.fam.forEach(function(f){
+      var a=clamp99(f.ad), k=clamp99(f.chd), ppl=a+k;
+      c.ad+=a; c.chd+=k;
+      if(f.full||f.alpin) c.alpin+=ppl;
+      if(f.full||f.kanat) c.kanat+=ppl;
+      if(f.full||f.most){ c.mostAd+=a; c.mostChd+=k; }
+      if(f.full||f.train){ c.trainAd+=a; c.trainChd+=k; }
+    });
+  }else if(tour==='yangbay'){
+    YGB.fam.forEach(add);
+  }else if(tour==='islands_north'){
+    I.fam.forEach(add);
+  }else if(tour==='baho'){
+    Baho.state.fam.forEach(add);
+  }else if(tour==='zoklet'){
+    Zoklet.state.fam.forEach(add);
+  }else if(tour==='islands_south'){
+    /* у Южных островов в учёте только общее число туристов — считаем их взрослыми */
+    c.ad = Math.max(0, parseInt(($('#y-x')||{}).value,10)||0);
+  }
+  return c;
+}
+window.ParusUchet = { tours: UCHET_TOURS, apply: uchetApply, toast: toast, counts: tourCounts };
 
 /* ─────── скролл: прогресс + spy глав (throttled через rAF) ─────── */
 var navLinks=Array.prototype.slice.call(document.querySelectorAll('.nav [data-spy]'));
@@ -2152,6 +2408,17 @@ renderGuideList();
       if(el && saved.yangbey[k]!==undefined) el.value=saved.yangbey[k];
     });
   }
+  if(Array.isArray(saved.ygbFam)) YGB.fam=saved.ygbFam;
+  if(saved.ygbPrices){
+    Object.keys(saved.ygbPrices).forEach(function(k){
+      var el=document.getElementById('ygb-'+k);
+      if(el && saved.ygbPrices[k]!==undefined) el.value=saved.ygbPrices[k];
+    });
+  }
+  if(saved.ygbExtra!==undefined){
+    var yge=document.getElementById('ygbExtra');
+    if(yge) yge.value=saved.ygbExtra;
+  }
   if(Array.isArray(saved.bahoFam)) Baho.state.fam=saved.bahoFam;
   if(Array.isArray(saved.zokletFam)) Zoklet.state.fam=saved.zokletFam;
   if(saved.bahoPrices){
@@ -2170,7 +2437,7 @@ renderGuideList();
   }
 })();
 
-renderDalat(); renderIsl(); calcYangbey();
+renderDalat(); renderIsl(); calcYangbey(); renderYgb();
 Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
 })();
 </script>
@@ -2215,16 +2482,89 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
   });
   paintTourPick();
 
-  drop.addEventListener('click', function(){ input.click(); });
+  /* Снимок берётся из буфера обмена: скачивать файл на устройство не нужно.
+     Клик по рамке и кнопка «Вставить» читают буфер сами, Ctrl+V ловится на странице,
+     а выбор файла и перетаскивание оставлены как запасные пути. */
+  document.getElementById('scanPickBtn').addEventListener('click', function(e){ e.stopPropagation(); input.click(); });
+  document.getElementById('scanPasteBtn').addEventListener('click', function(e){ e.stopPropagation(); readClipboard(); });
+  drop.addEventListener('click', function(e){
+    if(e.target.closest && e.target.closest('button')) return;
+    readClipboard();
+  });
   drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.style.borderColor='var(--gold)'; });
   drop.addEventListener('dragleave', function(){ drop.style.borderColor='var(--line2)'; });
   drop.addEventListener('drop', function(e){
     e.preventDefault(); drop.style.borderColor='var(--line2)';
-    if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    var img=imageFromTransfer(e.dataTransfer);
+    if(img) handleFile(img);
   });
   input.addEventListener('change', function(e){
     if(e.target.files.length) handleFile(e.target.files[0]);
   });
+
+  /* Ctrl+V / ⌘+V в любом месте страницы, кроме полей ввода — там вставляют текст. */
+  document.addEventListener('paste', function(e){
+    var t=e.target, tag=(t && t.tagName) || '';
+    if(tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT' || (t && t.isContentEditable)) return;
+    var img=imageFromTransfer(e.clipboardData);
+    if(!img) return;
+    e.preventDefault();
+    revealScan();
+    handleFile(img);
+  });
+
+  function imageFromTransfer(dt){
+    if(!dt) return null;
+    var files=dt.files||[];
+    for(var i=0;i<files.length;i++){
+      if(files[i].type && files[i].type.indexOf('image/')===0) return files[i];
+    }
+    var items=dt.items||[];
+    for(var j=0;j<items.length;j++){
+      if(items[j].kind==='file' && items[j].type && items[j].type.indexOf('image/')===0){
+        var f=items[j].getAsFile();
+        if(f) return f;
+      }
+    }
+    return null;
+  }
+
+  /* Кнопка «Вставить из буфера»: единственный способ вставить снимок на телефоне,
+     где нет Ctrl+V. Браузер спрашивает разрешение на чтение буфера. */
+  function readClipboard(){
+    if(!(navigator.clipboard && navigator.clipboard.read)){
+      showErr('Этот браузер не отдаёт буфер по кнопке. Нажмите Ctrl + V (⌘ + V) прямо на странице или выберите файл.');
+      return;
+    }
+    err.style.display='none';
+    navigator.clipboard.read().then(function(items){
+      for(var i=0;i<items.length;i++){
+        var types=items[i].types||[];
+        for(var j=0;j<types.length;j++){
+          if(types[j].indexOf('image/')===0){
+            return items[i].getType(types[j]).then(handleFile);
+          }
+        }
+      }
+      showErr('В буфере обмена нет картинки. Скопируйте снимок таблицы и попробуйте снова.');
+    }).catch(function(){
+      showErr('Браузер не дал прочитать буфер. Разрешите странице доступ к буферу обмена или нажмите Ctrl + V (⌘ + V).');
+    });
+  }
+
+  function revealScan(){
+    var sec=document.getElementById('scan');
+    if(!sec) return;
+    var r=sec.getBoundingClientRect(), mid=window.innerHeight/2;
+    if(r.top>mid || r.bottom<mid) sec.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  var thumbBox=document.getElementById('scanThumb');
+  var thumbImg=document.getElementById('scanThumbImg');
+  function showThumb(dataUrl){
+    if(!dataUrl){ thumbBox.style.display='none'; thumbImg.removeAttribute('src'); return; }
+    thumbImg.src=dataUrl; thumbBox.style.display='block';
+  }
 
   function showErr(msg){ err.textContent=msg; err.style.display='block'; }
 
@@ -2264,9 +2604,9 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
 
   function prepare(file){
     return readDataUrl(file).then(function(dataUrl){
+      showThumb(dataUrl);                          // видно, что именно ушло на распознавание
       var original={ base64:dataUrl.split(',')[1], mimeType:file.type||'image/jpeg' };
       return shrink(dataUrl, quality.checked?2000:1400)
-        .then(function(small){ return small; })
         .catch(function(){ return original; });   // старый браузер — шлём как есть
     });
   }
@@ -2274,7 +2614,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
   function handleFile(file){
     err.style.display='none'; result.style.display='none';
     aiReset();
-    if(!file.type.startsWith('image/')){ showErr('Это не изображение.'); return; }
+    if(!file || !file.type || file.type.indexOf('image/')!==0){ showErr('Это не изображение.'); return; }
     if(file.size > 18*1024*1024){ showErr('Файл больше 18 МБ.'); return; }
     busy.style.display='block';
     prepare(file).then(function(img){
@@ -2301,8 +2641,9 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
         renderPlan(plan);
         if(aiAuto.checked && hasKnown(plan)) applyPlan('add', true);
       }else{
-        aiShowErr('Туристы в таблице не распознаны. Можно поправить таблицу глазами и нажать «Разнести заново».');
-        aiActions.style.display='flex';
+        /* фото разобрано, но разнесения в ответе нет — досчитываем по таблице,
+           это отдельный дешёвый запрос без картинки */
+        runPlan(data, true);
       }
     }).catch(function(e){
       busy.style.display='none';
@@ -2322,6 +2663,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
 
   document.getElementById('scanResetBtn').addEventListener('click', function(){
     current=null; result.style.display='none'; err.style.display='none'; input.value='';
+    showThumb('');
     aiReset();
   });
 
@@ -2340,7 +2682,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
   });
 
   var TOUR_LABELS={ dalat:'Далат', islands_north:'Северные острова', islands_south:'Южные острова',
-                    baho:'Бахо', zoklet:'Зоклет', unknown:'Тур не определён' };
+                    yangbay:'Янгбей', baho:'Бахо', zoklet:'Зоклет', unknown:'Тур не определён' };
   var MARK_LABELS={ full:'Full', alpin:'сани', most:'мост', kanat:'канат', train:'поезд' };
 
   function aiReset(){
@@ -2353,6 +2695,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
     fixBox.style.display='none';
     gdBox.style.display='none';
     gdNote.style.display='none';
+    msgBox.style.display='none';
   }
   function aiShowErr(msg){
     aiBusy.style.display='none';
@@ -2362,7 +2705,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
 
   /* Повторное разнесение идёт по уже распознанной таблице: фото второй раз
      не отправляется, поэтому такой запрос почти ничего не стоит. */
-  function runPlan(data){
+  function runPlan(data, afterScan){
     var wasAuto=aiAuto.checked;
     aiReset();
     aiAuto.checked=wasAuto;
@@ -2381,8 +2724,10 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
       if(!res || !Array.isArray(res.groups) || !res.groups.length) throw new Error('ИИ не нашёл в таблице туристов.');
       plan=res;
       renderPlan(res);
+      if(afterScan && aiAuto.checked && hasKnown(res)) applyPlan('add', true);
     }).catch(function(e){
       aiShowErr(e.message || 'Не удалось разнести таблицу по турам.');
+      aiActions.style.display='flex';
     });
   }
 
@@ -2425,6 +2770,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
     aiActions.style.display = hasKnown(res) ? 'flex' : 'none';
     renderFixBlock(res);
     fillGuideBlock(res);
+    fillMsgBlock(res);
   }
 
   /* ─────── строки без тура: разбор вручную, без ИИ ─────── */
@@ -2447,7 +2793,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
   }
 
   /* порядок тот же, что у кнопок над загрузкой */
-  var FIX_TOURS=['dalat','islands_north','islands_south','baho','zoklet'];
+  var FIX_TOURS=['dalat','islands_north','islands_south','yangbay','baho','zoklet'];
 
   fixBtn.addEventListener('click', function(){
     if(!plan) return;
@@ -2501,7 +2847,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
 
   /* коды туров учёта → id туров из Главы II */
   var TOUR_TO_GUIDE={ dalat:'dalat', islands_north:'islands-north', islands_south:'islands-south',
-                      baho:'bahozoclet', zoklet:'bahozoclet' };
+                      yangbay:'yangbey', baho:'bahozoclet', zoklet:'bahozoclet' };
 
   function gdShowNote(msg){
     if(!msg){ gdNote.style.display='none'; return; }
@@ -2579,6 +2925,365 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
   document.getElementById('scanGdAdd').addEventListener('click', function(){ sendToGuide('add'); });
   document.getElementById('scanGdReplace').addEventListener('click', function(){ sendToGuide('replace'); });
 
+  /* ─────── сообщения партнёрам по Далату ───────
+     Три готовых текста по шаблонам: Ви Датанли (вьетнамский), мост (английский)
+     и транспортная компания (вьетнамский). Числа приходят из разнесения, но лежат
+     в полях — их можно поправить руками, текст пересобирается сразу.
+     Всё считается на странице: ни одного запроса к ИИ и ни одного платного вызова. */
+  var msgBox=document.getElementById('scanMsg');
+  var msgTour=document.getElementById('msgTour');
+  var msgDate=document.getElementById('msgDate');
+  var msgGuide=document.getElementById('msgGuide');
+  var msgPhone=document.getElementById('msgPhone');
+  var msgHotel=document.getElementById('msgHotel');
+  var msgPlace=document.getElementById('msgPlace');
+  var msgVip=document.getElementById('msgVip');
+  var msgTime=document.getElementById('msgTime');
+  var msgNote=document.getElementById('msgNote');
+  var msgGuideList=document.getElementById('msgGuideList');
+  var MSG_NUMS=['msgAd','msgChd','msgAlpin','msgKanat','msgMostAd','msgMostChd','msgTrainAd','msgTrainChd'];
+  var MSG_FIELDS=['msgDate','msgGuide','msgPhone','msgHotel','msgPlace','msgVip','msgTime'];
+  /* куда едем — так это место называет транспортная компания; поле правится руками */
+  var MSG_PLACES={ dalat:'Dalat', islands_north:'Đảo Bắc', islands_south:'Đảo Nam',
+                   yangbay:'Yang Bay', baho:'Ba Hồ', zoklet:'Dốc Lết' };
+  var MSG_KEY='parusScanMsg_v1';        // гид, отель, телефоны и правки названий помнятся между визитами
+  var msgSaved={ guide:'', hotel:'', tour:'', vip:'', time:'', phones:{}, places:{} };
+  var msgTexts={ bus:'', vi:'', most:'', train:'', ygb:'' };
+  var msgPhoneOwner='';
+
+  try{
+    var msgRaw=JSON.parse(localStorage.getItem(MSG_KEY)||'{}');
+    msgSaved.guide=msgRaw.guide||'';
+    msgSaved.hotel=msgRaw.hotel||'';
+    msgSaved.tour=msgRaw.tour||'';
+    msgSaved.vip=msgRaw.vip||'';
+    msgSaved.time=msgRaw.time||'';
+    msgSaved.phones=msgRaw.phones||{};
+    msgSaved.places=msgRaw.places||{};
+  }catch(e){}
+  msgGuide.value=msgSaved.guide;
+  msgHotel.value=msgSaved.hotel;
+  msgVip.value=msgSaved.vip;
+  msgTime.value=msgSaved.time;
+  msgPhoneOwner=msgSaved.guide;
+  msgPhone.value=msgSaved.phones[msgSaved.guide]||'';
+
+  function msgPersist(){
+    var g=msgGuide.value.trim(), ph=msgPhone.value.trim(), t=msgTour.value, pl=msgPlace.value.trim();
+    msgSaved.guide=g;
+    msgSaved.hotel=msgHotel.value.trim();
+    msgSaved.tour=t;
+    msgSaved.vip=msgVip.value.trim();
+    msgSaved.time=msgTime.value.trim();
+    if(g && ph) msgSaved.phones[g]=ph;
+    if(t){
+      if(pl && pl!==MSG_PLACES[t]) msgSaved.places[t]=pl;
+      else delete msgSaved.places[t];
+    }
+    try{ localStorage.setItem(MSG_KEY, JSON.stringify(msgSaved)); }catch(e){}
+  }
+
+  function numOf(id){
+    var v=parseInt(document.getElementById(id).value,10);
+    if(!isFinite(v) || v<0) return 0;
+    return Math.min(v,99);
+  }
+  function setNum(id,v){ document.getElementById(id).value=v; }
+
+  function isoOf(d){
+    var m=String(d.getMonth()+1), day=String(d.getDate());
+    return d.getFullYear()+'-'+(m.length<2?'0'+m:m)+'-'+(day.length<2?'0'+day:day);
+  }
+  function tomorrowIso(){ var d=new Date(); d.setDate(d.getDate()+1); return isoOf(d); }
+  /* партнёрам дата уходит как 27.08.2026, мосту — коротко, 27.08.26 */
+  function dmy(iso, shortYear){
+    var p=String(iso||'').split('-');
+    if(p.length!==3) return '';
+    return p[2]+'.'+p[1]+'.'+(shortYear?p[0].slice(2):p[0]);
+  }
+
+  function groupOf(res, tour){
+    var groups=(res&&res.groups)||(plan&&plan.groups)||[];
+    return groups.filter(function(x){ return x.tour===tour; })[0] || null;
+  }
+  function emptyCounts(){
+    return { ad:0, chd:0, alpin:0, kanat:0, mostAd:0, mostChd:0, trainAd:0, trainChd:0 };
+  }
+
+  /* числа из разнесения: сколько людей всего и сколько идёт на сани, канат, мост и поезд */
+  function countsFromPlan(res, tour){
+    var g=groupOf(res,tour);
+    if(!g || !g.families.length) return null;
+    var c=emptyCounts();
+    g.families.forEach(function(f){
+      var a=f.ad||0, k=f.chd||0, ppl=a+k;
+      c.ad+=a; c.chd+=k;
+      if(f.full||f.alpin) c.alpin+=ppl;
+      if(f.full||f.kanat) c.kanat+=ppl;
+      if(f.full||f.most){ c.mostAd+=a; c.mostChd+=k; }
+      if(f.full||f.train){ c.trainAd+=a; c.trainChd+=k; }
+    });
+    return c;
+  }
+
+  function countsFromUchet(tour){
+    if(!window.ParusUchet || !window.ParusUchet.counts) return null;
+    var c=window.ParusUchet.counts(tour);
+    return (c && (c.ad||c.chd)) ? c : null;
+  }
+
+  /* отель гида: чаще всего это отель самой большой группы в таблице */
+  function guessHotel(res, tour){
+    var g=groupOf(res,tour);
+    if(!g) return '';
+    var seen={}, best='', bestN=0;
+    g.families.forEach(function(f){
+      var h=(f.hotel||'').trim();
+      if(!h) return;
+      seen[h]=(seen[h]||0)+1;
+      if(seen[h]>bestN){ bestN=seen[h]; best=h; }
+    });
+    return best;
+  }
+
+  function fillCounts(c){
+    setNum('msgAd', c.ad); setNum('msgChd', c.chd);
+    setNum('msgAlpin', c.alpin); setNum('msgKanat', c.kanat);
+    setNum('msgMostAd', c.mostAd); setNum('msgMostChd', c.mostChd);
+    setNum('msgTrainAd', c.trainAd||0); setNum('msgTrainChd', c.trainChd||0);
+    renderMsgs();
+  }
+
+  function fillGuideNames(){
+    if(!msgGuideList || !window.ParusGuides) return;
+    msgGuideList.innerHTML = window.ParusGuides.list().map(function(g){
+      return '<option value="'+esc(g.name)+'"></option>';
+    }).join('');
+  }
+
+  /* телефон гида не берём из справочника: там номер для WhatsApp, а поезду нужен местный.
+     Тот, что вписан руками, помнится по имени гида и подставляется в следующий раз. */
+  function guidePhone(name){
+    var n=(name||'').trim();
+    return (n && msgSaved.phones[n]) || '';
+  }
+  function syncPhone(force){
+    var n=msgGuide.value.trim();
+    if(!force && msgPhoneOwner===n) return;
+    msgPhoneOwner=n;
+    msgPhone.value=guidePhone(n);
+  }
+
+  function fillTourOptions(){
+    if(msgTour.options.length) return;
+    msgTour.innerHTML = FIX_TOURS.map(function(t){
+      return '<option value="'+t+'">'+esc(TOUR_LABELS[t]||t)+'</option>';
+    }).join('');
+  }
+
+  /* какие туры нашлись в разнесении — по ним и предлагаем сообщения */
+  function planTours(res){
+    var groups=(res&&res.groups)||(plan&&plan.groups)||[];
+    var out=[];
+    groups.forEach(function(g){
+      if(g.tour==='unknown' || !g.families.length) return;
+      if(out.indexOf(g.tour)<0) out.push(g.tour);
+    });
+    return out;
+  }
+
+  function syncPlace(){
+    var t=msgTour.value;
+    msgPlace.value = msgSaved.places[t] || MSG_PLACES[t] || '';
+  }
+
+  function toggleByClass(cls, on){
+    var els=document.getElementsByClassName(cls);
+    for(var i=0;i<els.length;i++) els[i].style.display = on ? '' : 'none';
+  }
+  /* транспорт нужен на каждый тур, остальное — только там, где такие партнёры есть */
+  function applyTourVis(){
+    toggleByClass('msg-dalat', msgTour.value==='dalat');
+    toggleByClass('msg-ygb',   msgTour.value==='yangbay');
+  }
+
+  function fillMsgBlock(res){
+    fillTourOptions();
+    var found=planTours(res);
+    var want=found[0] || msgSaved.tour || msgTour.value || 'dalat';
+    if(FIX_TOURS.indexOf(want)<0) want='dalat';
+    msgTour.value=want;
+    if(res && res.date) msgDate.value=res.date;
+    else if(!msgDate.value) msgDate.value=tomorrowIso();
+    if(res && res.guide && !msgGuide.value.trim()){ msgGuide.value=res.guide; syncPhone(true); }
+    if(!msgHotel.value.trim()) msgHotel.value=guessHotel(res, want);
+    fillGuideNames();
+    syncPlace();
+    applyTourVis();
+    fillCounts(countsFromPlan(res, want) || countsFromUchet(want) || emptyCounts());
+    msgBox.style.display='block';
+    msgPersist();
+  }
+
+  function msgData(){
+    var iso=msgDate.value||tomorrowIso();
+    var t=msgTour.value||'dalat';
+    return {
+      tour:t,
+      iso:iso, date:dmy(iso,false), dateShort:dmy(iso,true), tomorrow:(iso===tomorrowIso()),
+      guide:msgGuide.value.trim()||'___', phone:msgPhone.value.trim(),
+      hotel:msgHotel.value.trim(), place:msgPlace.value.trim()||MSG_PLACES[t]||'___',
+      vip:msgVip.value.trim(), time:msgTime.value.trim(),
+      ad:numOf('msgAd'), chd:numOf('msgChd'),
+      alpin:numOf('msgAlpin'), kanat:numOf('msgKanat'),
+      mostAd:numOf('msgMostAd'), mostChd:numOf('msgMostChd'),
+      trainAd:numOf('msgTrainAd'), trainChd:numOf('msgTrainChd')
+    };
+  }
+
+  /* Ви Датанли: вход, обед и туннель — на всех, сани и канат — только на отмеченных */
+  function buildVi(d){
+    var ppl=d.ad+d.chd;
+    var lines=[ d.tomorrow
+      ? 'dạ em gửi chương trình cho ngày mai ạ '+d.date+' guide name '+d.guide
+      : 'dạ em gửi chương trình cho ngày '+d.date+' guide name '+d.guide ];
+    lines.push('ticket entrance - '+ppl);
+    lines.push('Lunch - '+ppl);
+    lines.push('Clay tunnel - '+ppl);
+    if(d.alpin) lines.push('Electric sleigh - '+d.alpin);
+    if(d.kanat) lines.push('Cabble car - '+d.kanat);
+    return lines.join('\n');
+  }
+
+  /* мост: взрослые и дети отдельно — у моста разная цена */
+  function buildMost(d){
+    var lines=['Good evening. '+(d.tomorrow?'Tomorrow ':'')+d.dateShort+'. Parus travel. Guide name '+d.guide, ''];
+    if(d.mostAd) lines.push(d.mostAd+' ADULT');
+    if(d.mostChd) lines.push(d.mostChd+' CHILD');
+    return lines.join('\n');
+  }
+
+  /* транспорт: люди плюс гид, куда едем и где гида подбирают (HDV — гид по-вьетнамски) */
+  function buildBus(d){
+    var who=[];
+    if(d.ad) who.push(d.ad+' người lớn');
+    if(d.chd) who.push(d.chd+' trẻ em');
+    who.push('1 guide name '+d.guide);
+    var lines=['Em chào anh ạ', '', d.place+'. '+d.date+'.', who.join(' + ')];
+    if(d.hotel){ lines.push(''); lines.push('Anh đón HDV tại '+d.hotel+' nha'); }
+    return lines.join('\n');
+  }
+
+  /* поезд в Далате: состав группы одной строкой плюс имя и телефон гида */
+  function buildTrain(d){
+    var who=[];
+    if(d.trainAd) who.push(d.trainAd+' người lớn');
+    if(d.trainChd) who.push(d.trainChd+' trẻ em');
+    var line='Parus Travel. '+(who.length ? who.join(' ')+', ' : '')+'1 HDV. Tên HDV '+d.guide
+      +'/ sdt '+(d.phone||'___');
+    return 'Em chào anh ạ. '+d.date+'\n'+line;
+  }
+
+  /* Янгбей: класс и время — числа туристов партнёру не нужны */
+  function buildYgb(d){
+    return [d.vip, d.time, '', 'Em cảm ơn anh 🙏'].join('\n');
+  }
+
+  function setMsgBox(id, text, empty){
+    var box=document.getElementById(id);
+    box.textContent = text || empty;
+    box.style.opacity = text ? '' : '.6';
+  }
+
+  function renderMsgs(){
+    var d=msgData(), ppl=d.ad+d.chd;
+    var isD=d.tour==='dalat', isY=d.tour==='yangbay';
+    msgTexts.bus   = ppl ? buildBus(d) : '';
+    msgTexts.vi    = (isD && ppl) ? buildVi(d) : '';
+    msgTexts.most  = (isD && (d.mostAd+d.mostChd)) ? buildMost(d) : '';
+    msgTexts.train = (isD && (d.trainAd+d.trainChd)) ? buildTrain(d) : '';
+    msgTexts.ygb   = (isY && (d.vip || d.time)) ? buildYgb(d) : '';
+    setMsgBox('msgBusBox',   msgTexts.bus,   'Поставьте число туристов — текст соберётся сам.');
+    setMsgBox('msgViBox',    msgTexts.vi,    'Поставьте число туристов — текст соберётся сам.');
+    setMsgBox('msgMostBox',  msgTexts.most,  'На мост никто не отмечен — сообщение не нужно.');
+    setMsgBox('msgTrainBox', msgTexts.train, 'На поезд никто не отмечен — сообщение не нужно.');
+    setMsgBox('msgYgbBox',   msgTexts.ygb,   'Впишите класс и время — текст соберётся сам.');
+
+    var notes=[];
+    if(!msgGuide.value.trim()) notes.push('Впишите имя гида — пока в тексте стоит пропуск.');
+    if(!d.hotel) notes.push('Впишите отель, где подбирают гида, — без него последняя строка транспортной компании не появится.');
+    if(isD && (d.trainAd+d.trainChd) && !d.phone) notes.push('Впишите телефон гида — поезд просит его в той же строке; номер запомнится за этим именем.');
+    notes.push('Транспортная компания нужна на каждый тур: текст собирается для выбранного тура, название места правится в поле «Куда едем».');
+    if(isD) notes.push('Вход, обед и глиняный туннель считаются на всех туристов сразу, взрослые и дети вместе; на мосту и в поезде они идут отдельными строками.');
+    msgNote.textContent = notes.join(' ');
+  }
+
+  function copyText(txt){
+    if(!txt){ window.ParusUchet.toast('Нечего копировать'); return; }
+    var done=function(){ window.ParusUchet.toast('Текст скопирован'); };
+    var manual=function(){
+      var ta=document.createElement('textarea');
+      ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); done(); }
+      catch(e){ window.ParusUchet.toast('Не получилось скопировать — выделите текст вручную'); }
+      document.body.removeChild(ta);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(manual);
+    }else{ manual(); }
+  }
+
+  msgBox.addEventListener('click', function(e){
+    var b=e.target.closest ? e.target.closest('button[data-msg]') : null;
+    if(!b) return;
+    copyText(msgTexts[b.getAttribute('data-msg')]);
+  });
+
+  document.getElementById('msgCopyAll').addEventListener('click', function(){
+    var parts=[];
+    if(msgTexts.bus)   parts.push('Транспорт:\n'+msgTexts.bus);
+    if(msgTexts.vi)    parts.push('Ви Датанли:\n'+msgTexts.vi);
+    if(msgTexts.most)  parts.push('Мост:\n'+msgTexts.most);
+    if(msgTexts.train) parts.push('Поезд:\n'+msgTexts.train);
+    if(msgTexts.ygb)   parts.push('Янгбей:\n'+msgTexts.ygb);
+    copyText(parts.join('\n\n———\n\n'));
+  });
+
+  msgTour.addEventListener('change', function(){
+    var t=msgTour.value;
+    syncPlace();
+    applyTourVis();
+    var c=countsFromPlan(null,t) || countsFromUchet(t);
+    if(c) fillCounts(c); else renderMsgs();
+    msgPersist();
+  });
+
+  document.getElementById('msgFromScan').addEventListener('click', function(){
+    var t=msgTour.value;
+    var c=countsFromPlan(null,t);
+    if(!c){ window.ParusUchet.toast('В скане нет тура «'+(TOUR_LABELS[t]||t)+'»'); return; }
+    fillCounts(c);
+    window.ParusUchet.toast('Числа взяты из скана');
+  });
+
+  document.getElementById('msgFromUchet').addEventListener('click', function(){
+    var t=msgTour.value;
+    var c=countsFromUchet(t);
+    if(!c){ window.ParusUchet.toast('В учёте тура «'+(TOUR_LABELS[t]||t)+'» пусто'); return; }
+    fillCounts(c);
+    window.ParusUchet.toast('Числа взяты из учёта');
+  });
+
+  msgGuide.addEventListener('input', function(){ syncPhone(false); });
+  msgPhone.addEventListener('input', function(){ msgPhoneOwner=msgGuide.value.trim(); });
+
+  MSG_FIELDS.concat(MSG_NUMS).forEach(function(id){
+    var el=document.getElementById(id);
+    el.addEventListener('input', function(){ renderMsgs(); msgPersist(); });
+    el.addEventListener('change', function(){ renderMsgs(); msgPersist(); });
+  });
+
   document.getElementById('scanCsvBtn').addEventListener('click', function(){
     if(!current) return;
     var esc2=function(v){ var s=String(v==null?'':v); return /[",\n;]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
@@ -2593,7 +3298,7 @@ Baho.render(calcBahoZoklet); Zoklet.render(calcBahoZoklet);
   document.getElementById('scanCopyBtn').addEventListener('click', function(){
     if(!current) return;
     var lines=[current.columns.join('\t')].concat(current.rows.map(function(r){ return r.join('\t'); }));
-    navigator.clipboard.writeText(lines.join('\n'));
+    copyText(lines.join('\n'));
   });
 })();
 </script>
