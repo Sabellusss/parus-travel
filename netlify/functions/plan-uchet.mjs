@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 
 const MODEL = "gemini-flash-latest";
 
-const TOURS = ["dalat", "islands_north", "islands_south", "baho", "zoklet", "unknown"];
+const TOURS = ["dalat", "islands_north", "islands_south", "yangbay", "baho", "zoklet", "unknown"];
 const MARKS = ["full", "alpin", "most", "kanat", "train"];
 
 const PROMPT = [
@@ -12,11 +12,13 @@ const PROMPT = [
   "Если в таблице есть отель и номер комнаты семьи — передавай их в полях hotel и room, гиду они нужны.",
   "Ребёнком считается турист с детской ценой или пометкой CHD/ребёнок; остальные — взрослые (ad).",
   "Возможные туры: dalat (Далат), islands_north (Северные острова), islands_south (Южные острова),",
-  "baho (Бахо, водопады), zoklet (Зоклет).",
+  "yangbay (Янгбей, парк с водопадами), baho (Бахо, водопады), zoklet (Зоклет).",
   "Если тур строки определить нельзя — ставь tour: \"unknown\", не выдумывай.",
   "Для Далата отметь дополнительные опции, если они есть в таблице:",
   "full (полный пакет), alpin (сани/альпийские горки), most (мост), kanat (канатная дорога), train (поезд).",
   "Служебные строки (заголовки, итоги, пустые) пропускай.",
+  "Если в таблице написано имя гида (guide, HDV, гид) — верни его в поле guide, латиницей, как в таблице.",
+  "Если в таблице есть дата тура — верни её в поле date в формате ГГГГ-ММ-ДД. Даты нет — поле не заполняй.",
   "Верни строго JSON, без пояснений вне JSON.",
 ].join(" ");
 
@@ -54,6 +56,8 @@ const RESPONSE_SCHEMA = {
       },
     },
     notes: { type: "string" },
+    guide: { type: "string" },
+    date: { type: "string" },
   },
   required: ["groups"],
 };
@@ -114,6 +118,11 @@ function normalize(parsed) {
   }
   const out = { groups };
   if (parsed?.notes) out.notes = String(parsed.notes);
+  // имя гида и дата нужны сообщениям партнёрам — там они стоят в первой строке текста
+  const guide = String(parsed?.guide || "").trim();
+  if (guide) out.guide = guide.slice(0, 60);
+  const date = String(parsed?.date || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) out.date = date;
   return out;
 }
 
