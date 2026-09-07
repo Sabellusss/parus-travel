@@ -3,6 +3,9 @@ import { GoogleGenAI } from "@google/genai";
 const MODEL = "gemini-flash-latest";
 
 const TOURS = ["dalat", "islands_north", "islands_south", "yangbay", "baho", "zoklet", "unknown"];
+// Бахо и Зоклет — один тур с двумя остановками. Модель иногда называет его второй
+// остановкой, поэтому "zoklet" принимаем, но в учёт отдаём одним ключом "baho".
+const TOUR_ALIAS = { zoklet: "baho" };
 const MARKS = ["full", "alpin", "most", "kanat", "train"];
 
 const PROMPT = [
@@ -12,7 +15,9 @@ const PROMPT = [
   "Если в таблице есть отель и номер комнаты семьи — передавай их в полях hotel и room, гиду они нужны.",
   "Ребёнком считается турист с детской ценой или пометкой CHD/ребёнок; остальные — взрослые (ad).",
   "Возможные туры: dalat (Далат), islands_north (Северные острова), islands_south (Южные острова),",
-  "yangbay (Янгбей, парк с водопадами), baho (Бахо, водопады), zoklet (Зоклет).",
+  "yangbay (Янгбей, парк с водопадами), baho (Бахо — Зоклет).",
+  "Бахо и Зоклет — это один тур с двумя остановками (водопады Бахо и пляж Зоклет):",
+  "и для Бахо, и для Зоклета, и для их сочетания ставь tour: \"baho\", не разделяй их.",
   "Если тур строки определить нельзя — ставь tour: \"unknown\", не выдумывай.",
   "Для Далата отметь дополнительные опции, если они есть в таблице:",
   "full (полный пакет), alpin (сани/альпийские горки), most (мост), kanat (канатная дорога), train (поезд).",
@@ -88,7 +93,8 @@ function num(v) {
 function normalize(parsed) {
   const byTour = new Map();
   for (const g of parsed?.groups || []) {
-    const tour = TOURS.includes(g?.tour) ? g.tour : "unknown";
+    const raw = TOURS.includes(g?.tour) ? g.tour : "unknown";
+    const tour = TOUR_ALIAS[raw] || raw;
     const families = (Array.isArray(g?.families) ? g.families : [])
       .map((f) => {
         const fam = {
@@ -139,8 +145,9 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: "Таблица не передана." }), { status: 400 });
   }
 
-  const hint = TOURS.includes(tour) && tour !== "unknown"
-    ? ' Все строки этой таблицы относятся к туру "' + tour + '" — ставь его всем группам.'
+  const hinted = TOUR_ALIAS[tour] || tour;
+  const hint = TOURS.includes(hinted) && hinted !== "unknown"
+    ? ' Все строки этой таблицы относятся к туру "' + hinted + '" — ставь его всем группам.'
     : "";
 
   const table = JSON.stringify({ columns: Array.isArray(columns) ? columns : [], rows });
