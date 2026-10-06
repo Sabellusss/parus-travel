@@ -1201,7 +1201,7 @@ ALENA ALENA | +7 951 420-33-88 | Sunrise | 315 | 1"></textarea>
         <button class="btn ghost" data-tour="yangbay" type="button">Янгбей</button>
         <button class="btn ghost" data-tour="baho" type="button">Бахо — Зоклет</button>
       </div>
-      <p class="price-note" style="text-align:left;margin-top:8px">Если на фото тур написан латиницей или сокращённо, укажите его сами — ИИ отнесёт туда все строки, кроме тех, где прямо назван другой тур.</p>
+      <p class="price-note" style="text-align:left;margin-top:8px">Если на фото тур написан латиницей или сокращённо, укажите его сами — туда уйдут все строки, кроме тех, где в таблице прямо назван другой тур.</p>
     </div>
 
     <div id="scanDrop" style="border:1px dashed var(--line2);padding:30px 18px;text-align:center;cursor:pointer;transition:.25s">
@@ -1222,7 +1222,7 @@ ALENA ALENA | +7 951 420-33-88 | Sunrise | 315 | 1"></textarea>
       <input type="checkbox" id="scanQuality"><i>✦</i>
       <span style="font-size:13px;color:var(--mut);font-style:italic">Подробный режим — дороже, но лучше читает мелкий и рукописный текст</span>
     </label>
-    <p class="price-note" style="text-align:left;margin-top:6px">Обычно включать не нужно: фото сжимается перед отправкой и разбирается самой дешёвой моделью, а подробная включится сама, если ничего не удалось прочитать.</p>
+    <p class="price-note" style="text-align:left;margin-top:6px">Обычно включать не нужно: снимок разбирается быстрой моделью, а подробная включается сама, если таблицу прочитать не удалось. Мелкие фото больше не пережимаются — цифры телефонов от этого и терялись.</p>
 
     <div id="scanErr" style="display:none;margin-top:16px;border:1px dashed rgba(192,22,35,.55);color:#ff9d8a;padding:12px 14px;font-size:13px"></div>
 
@@ -1245,7 +1245,7 @@ ALENA ALENA | +7 951 420-33-88 | Sunrise | 315 | 1"></textarea>
 
       <!-- ИИ-разнесение распознанной таблицы по ведомостям Главы I -->
       <div id="scanAi" style="margin-top:28px;border-top:1px solid var(--line2);padding-top:22px">
-        <div class="card-t">Разнесение по учёту<small>ИИ сам находит тур в таблице и считает, сколько где взрослых и детей</small></div>
+        <div class="card-t">Разнесение по учёту<small>Считается прямо здесь, по таблице выше: в учёт попадает ровно то, что показал скан</small></div>
 
         <div id="scanAiBusy" style="display:none;margin-top:14px;text-align:center;color:var(--gold);font-family:var(--fu);letter-spacing:.14em;font-size:13px;text-transform:uppercase">
           Считаю туристов по турам…
@@ -1267,7 +1267,7 @@ ALENA ALENA | +7 951 420-33-88 | Sunrise | 315 | 1"></textarea>
         <div class="toolbar" id="scanAiActions" style="margin-top:16px;display:none">
           <button class="btn red" id="scanAiAdd">✦ Добавить в учёт</button>
           <button class="btn ghost" id="scanAiReplace">Заменить ведомости</button>
-          <button class="btn ghost" id="scanAiRetry">Разнести заново</button>
+          <button class="btn ghost" id="scanAiRetry">Пересчитать</button>
         </div>
 
         <label class="ck" id="scanAiAutoWrap" style="margin-top:16px;align-items:center;gap:10px">
@@ -1277,7 +1277,7 @@ ALENA ALENA | +7 951 420-33-88 | Sunrise | 315 | 1"></textarea>
 
         <!-- перенос имён и телефонов в бланк сообщения гиду -->
         <div id="scanGuide" style="display:none;margin-top:26px;border-top:1px solid var(--line2);padding-top:22px">
-          <div class="card-t">Передать гиду<small>Имена и телефоны туристов уйдут в бланк сообщения — останется выбрать гида</small></div>
+          <div class="card-t">Передать гиду<small>Имена, телефоны, отели и номера комнат уйдут в бланк сообщения по любому туру — останется выбрать гида</small></div>
           <div class="i-grid" style="margin-top:14px">
             <div class="field"><label>Кого передаём</label><select id="scanGdTour"></select></div>
             <div class="field"><label>Гид</label><select id="scanGdGuide"></select></div>
@@ -2780,22 +2780,27 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
     });
   }
 
-  /* Фото уменьшается прямо в браузере. Картинка — основная часть того, за что
-     платится при распознавании, а для чтения таблицы избыточный размер не нужен:
-     снимок с телефона стоит примерно втрое дороже уменьшенного. */
-  function shrink(dataUrl, maxSide){
+  /* Фото уменьшается прямо в браузере: картинка — основная часть того, за что
+     платится при распознавании. Но пережимать вслепую нельзя — именно на этом
+     терялись мелкие цифры телефонов: снимок, который и так небольшой, уходит
+     как есть, а уменьшенный сохраняется с запасом качества. */
+  function shrink(dataUrl, maxSide, jpegQ){
     return new Promise(function(resolve, reject){
       var im=new Image();
       im.onload=function(){
         var w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
         if(!w || !h){ reject(new Error('no size')); return; }
-        var k=Math.min(1, maxSide/Math.max(w,h));
+        if(Math.max(w,h)<=maxSide){ resolve(null); return; }   // и так мелкий — не пережимаем
+        var k=maxSide/Math.max(w,h);
         var cw=Math.max(1,Math.round(w*k)), ch=Math.max(1,Math.round(h*k));
         try{
           var c=document.createElement('canvas');
           c.width=cw; c.height=ch;
-          c.getContext('2d').drawImage(im,0,0,cw,ch);
-          var out=c.toDataURL('image/jpeg',0.82);
+          var ctx=c.getContext('2d');
+          ctx.imageSmoothingEnabled=true;
+          if('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality='high';
+          ctx.drawImage(im,0,0,cw,ch);
+          var out=c.toDataURL('image/jpeg',jpegQ||0.92);
           if(out.indexOf('data:image/jpeg')!==0){ reject(new Error('no canvas')); return; }
           resolve({ base64:out.split(',')[1], mimeType:'image/jpeg' });
         }catch(e){ reject(e); }
@@ -2809,7 +2814,9 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
     return readDataUrl(file).then(function(dataUrl){
       showThumb(dataUrl);                          // видно, что именно ушло на распознавание
       var original={ base64:dataUrl.split(',')[1], mimeType:file.type||'image/jpeg' };
-      return shrink(dataUrl, quality.checked?2000:1400)
+      var big = quality.checked;
+      return shrink(dataUrl, big?2600:1800, big?0.95:0.9)
+        .then(function(small){ return small || original; })
         .catch(function(){ return original; });   // старый браузер — шлём как есть
     });
   }
@@ -2825,7 +2832,7 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ image: img.base64, mimeType: img.mimeType,
-                               mode: quality.checked?'quality':'cheap', plan: true, tour: tourHint })
+                               mode: quality.checked?'quality':'cheap' })
       });
     }).then(function(r){
       return r.json().catch(function(){ return null; }).then(function(data){
@@ -2838,17 +2845,10 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
       if(!data.columns.length && !data.rows.length) throw new Error('На фото не найдена таблица. Попробуйте снимок покрупнее и чётче.');
       current=data;
       renderTable(data);
-      /* разнесение приходит тем же ответом — второй платный запрос не нужен */
-      if(Array.isArray(data.groups) && data.groups.length){
-        plan=mergeTours({ groups:data.groups, notes:data.notes||'',
-                          guide:data.guide||'', date:data.date||'' });
-        renderPlan(plan);
-        if(aiAuto.checked && hasKnown(plan)) applyPlan('add', true);
-      }else{
-        /* фото разобрано, но разнесения в ответе нет — досчитываем по таблице,
-           это отдельный дешёвый запрос без картинки */
-        runPlan(data, true);
-      }
+      /* видно, когда быстрой модели не хватило и снимок дочитывала подробная */
+      if(data.escalated) window.ParusUchet.toast('Быстрая модель таблицу не прочитала — разобрал подробный режим');
+      /* разнесение считается тут же, по этой самой таблице — второго запроса нет */
+      makePlan(data, true);
     }).catch(function(e){
       busy.style.display='none';
       showErr(e.message || 'Не удалось распознать изображение.');
@@ -2907,9 +2907,392 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
     aiErrBox.style.display='block';
   }
 
-  /* Повторное разнесение идёт по уже распознанной таблице: фото второй раз
-     не отправляется, поэтому такой запрос почти ничего не стоит. */
-  function runPlan(data, afterScan){
+  /* ─────── разнесение по учёту: считается здесь, на странице ───────
+     Раньше распознанную таблицу второй раз отдавали ИИ, и он пересобирал её
+     по-своему: скан показывал одно, а в ведомости оказывалось другое. Теперь
+     ИИ занят одним делом — переписать фото в таблицу, а раскладку по турам,
+     семьям, телефонам и числам считает код по тем же клеткам, которые видны
+     выше. Что в скане — то и в учёте, мгновенно и без платного запроса. */
+
+  /* заголовок столбца приводим к простому виду: без пунктуации, «ё» как «е» */
+  function headKey(v){
+    return String(v==null?'':v).toLowerCase().replace(/ё/g,'е')
+      .replace(/[^0-9a-zа-яÀ-ɏ]+/g,' ').replace(/\s+/g,' ').trim();
+  }
+
+  /* Порядок важен: что раньше в списке — то и выигрывает спор за столбец.
+     «Цена взрослого» обязана достаться цене, а не числу взрослых, поэтому
+     price стоит выше ad; «Отель» не должен попасть в телефон, поэтому «тел»
+     ищется отдельным словом, а не куском слова. */
+  var COL_RULES=[
+    ['phone', /(^| )тел( |$)|телеф|phone|whats|zalo|viber|sdt|моб|mobile|конт|contact/],
+    ['room',  /комнат|room|(^| )ном ком/],
+    ['hotel', /отел|hotel|прожив|khach san|resort|размещ|заселен/],
+    ['price', /цена|price|стоим|оплат|долг|предоплат|внесен|остат|тариф|сумма|vnd|руб|usd|нетто|брутто/],
+    ['ad',    /(^| )ad( |$)|(^| )adl( |$)|взросл|(^| )взр|adult|nguoi lon/],
+    ['chd',   /(^| )chd( |$)|(^| )chl( |$)|ребен|(^| )реб|дет|child|kid|tre em/],
+    ['pax',   /кол во|колич|(^| )кол( |$)|всего|итого|pax|чел|состав|турист|(^| )n( |$)|qty/],
+    ['tour',  /тур|экскурс|программ|маршрут|tour|направлен|поездк/],
+    ['date',  /дата|date|ngay|число/],
+    ['guide', /гид|guide|hdv|сопровожд/],
+    ['full',  /(^| )full( |$)|фулл|полн(ый|ая)? пакет|все опц/],
+    ['alpin', /сани|alpin|альп|горк|mang truot/],
+    ['most',  /мост|most|bridge|cau kinh/],
+    ['kanat', /канат|kanat|cable|cap treo|фуникул/],
+    ['train', /поезд|train|(^| )tau( |$)|паровоз/],
+    ['name',  /фио|ф и о|фамил|(^| )имя|имена|name|гост|guest|клиент|семь|passenger|пассажир/],
+    ['note',  /примеч|коммент|note|заметк|ghi chu|описан/]
+  ];
+  var MARK_KEYS=['full','alpin','most','kanat','train'];
+  /* отметки Далата, написанные словами в примечании, а не отдельным столбцом */
+  var MARK_TEXT={ full:/(^|\W)full(\W|$)|фулл|полный пакет/i,
+                  alpin:/сани|альп|alpin|горк/i,
+                  most:/мост|most|bridge/i,
+                  kanat:/канат|kanat|cable|фуникул/i,
+                  train:/поезд|train|паровоз/i };
+  var TOUR_PATTERNS=[
+    ['dalat',         /далат|dalat|da ?lat|đà ?lạt/i],
+    ['islands_north', /север|north|сев остр|3 остров|dao bac|vinh hy/i],
+    ['islands_south', /южн|юг остр|south|dao nam|4 остров/i],
+    ['yangbay',       /янгб|янг ?бе|янг ?бэ|yang ?bay/i],
+    ['baho',          /бахо|ba ?ho|зокл|зокле|zoc ?let|doc ?let|док ?лет/i]
+  ];
+  /* готовый код тура (кнопка оператора, ответ распознавания) берём как есть,
+     без разбора текста — тут угадывать нечего */
+  var TOUR_CODES=['dalat','islands_north','islands_south','yangbay','baho','zoklet'];
+  function tourFromCode(v){
+    v=String(v||'').trim();
+    return TOUR_CODES.indexOf(v)>-1 ? tourKey(v) : '';
+  }
+
+  function cellAt(row,i){ return i>=0 ? String((row&&row[i])||'').trim() : ''; }
+  function colCells(rows,i){
+    return rows.map(function(r){ return cellAt(r,i); }).filter(function(v){ return v; });
+  }
+  /* телефон: 9–15 цифр и без слов внутри. Короткие номера комнат, суммы
+     и даты под это не подходят и в телефон не попадут. */
+  function isPhoneish(v){
+    var t=String(v||'').trim();
+    if(!t) return false;
+    if(/^\d{1,2}[.\/-]\d{1,2}([.\/-]\d{2,4})?$/.test(t)) return false;
+    var d=(t.match(/\d/g)||[]).length;
+    if(d<9 || d>15) return false;
+    return !/[a-zа-яё]{3}/i.test(t);
+  }
+  function isSmallNum(v){
+    var t=String(v||'').trim();
+    return /^\d{1,2}$/.test(t) || /^\d{1,2}\s*[+\/]\s*\d{1,2}$/.test(t);
+  }
+  function isTexty(v){ return /[a-zа-яёÀ-ɏ]{3}/i.test(String(v||'')); }
+  function share(cells, fn){
+    if(!cells.length) return 0;
+    return cells.filter(fn).length/cells.length;
+  }
+
+  /* Столбцы узнаём по шапке, а потом сверяем с содержимым: шапка на фото
+     часто читается хуже клеток, и столбец «Кол-во», в котором стоят имена,
+     превратил бы весь учёт в мусор. */
+  function detectColumns(columns, rows){
+    var roles=columns.map(function(c){
+      var k=headKey(c);
+      if(!k) return '';
+      for(var i=0;i<COL_RULES.length;i++){ if(COL_RULES[i][1].test(k)) return COL_RULES[i][0]; }
+      return '';
+    });
+
+    columns.forEach(function(c,i){
+      var cells=colCells(rows,i);
+      if(!cells.length){ return; }
+      var r=roles[i];
+      if(r==='ad'||r==='chd'||r==='pax'){
+        if(share(cells,isSmallNum)<0.5){
+          roles[i] = share(cells,isPhoneish)>=0.5 ? 'phone' : (share(cells,isTexty)>=0.5 ? 'name' : '');
+        }
+      }else if(r==='phone'){
+        if(share(cells,isPhoneish)<0.5) roles[i] = share(cells,isTexty)>=0.5 ? 'name' : '';
+      }else if(r==='name'){
+        /* «Ли», «А. Иванов» — имя бывает короче трёх букв, поэтому столбец
+           уводим из имён только когда в нём явно телефоны или числа */
+        if(share(cells,isPhoneish)>=0.5) roles[i]='phone';
+        else if(share(cells,isSmallNum)>=0.5) roles[i]='pax';
+      }
+    });
+
+    var has=function(role){ return roles.indexOf(role)>-1; };
+    /* шапка не прочиталась или названа непривычно — ищем столбцы по содержимому */
+    if(!has('phone')) columns.forEach(function(c,i){
+      if(roles[i] || has('phone')) return;
+      if(share(colCells(rows,i), isPhoneish)>=0.5) roles[i]='phone';
+    });
+    if(!has('name')) columns.forEach(function(c,i){
+      if(roles[i] || has('name')) return;
+      if(share(colCells(rows,i), isTexty)>=0.6) roles[i]='name';
+    });
+    if(!has('ad') && !has('chd') && !has('pax')) columns.forEach(function(c,i){
+      if(roles[i] || has('pax')) return;
+      if(share(colCells(rows,i), isSmallNum)>=0.6) roles[i]='pax';
+    });
+
+    var first=function(role){ return roles.indexOf(role); };
+    var all=function(role){
+      var out=[];
+      roles.forEach(function(r,i){ if(r===role) out.push(i); });
+      return out;
+    };
+    var marks={};
+    MARK_KEYS.forEach(function(k){ marks[k]=first(k); });
+    return {
+      roles:roles,
+      name:all('name'), note:all('note'),
+      phone:first('phone'), hotel:first('hotel'), room:first('room'),
+      ad:first('ad'), chd:first('chd'), pax:first('pax'),
+      tour:first('tour'), date:first('date'), guide:first('guide'),
+      marks:marks
+    };
+  }
+
+  function numIn(v){
+    var m=String(v||'').match(/\d{1,2}/);
+    return m ? Math.min(99, parseInt(m[0],10)) : 0;
+  }
+  /* «2+1» — два взрослых и один ребёнок; шаблон закреплён на всю клетку,
+     чтобы не выхватить пару цифр из телефона */
+  function composite(v){
+    var m=String(v||'').match(/^\s*(\d{1,2})\s*[+\/]\s*(\d{1,2})\s*$/);
+    return m ? { ad:Math.min(99,+m[1]), chd:Math.min(99,+m[2]) } : null;
+  }
+  function childMark(v){
+    return /(^|\W)chd(\W|$)|ребен|(^|\W)реб|(^|\W)дет(и|ей|ский|ям)?(\W|$)|child|(^|\W)kid/i.test(String(v||''));
+  }
+  /* сколько в строке взрослых и детей: сперва свои столбцы AD и CHD,
+     потом общий столбец («2+1» или одно число), и только потом примечание */
+  function countsOf(row, m){
+    var out={ ad:0, chd:0 };
+    if(m.ad>=0 || m.chd>=0){
+      var adTxt=cellAt(row,m.ad), chdTxt=cellAt(row,m.chd);
+      var pair=composite(adTxt);
+      if(pair && m.chd<0) return pair;
+      out.ad=numIn(adTxt); out.chd=numIn(chdTxt);
+      if(out.ad||out.chd) return out;
+    }
+    if(m.pax>=0){
+      var pax=cellAt(row,m.pax);
+      var cp=composite(pax);
+      if(cp) return cp;
+      var n=numIn(pax);
+      if(n){
+        var near=[pax, cellAt(row,m.note)].join(' ');
+        if(childMark(near)) out.chd=n; else out.ad=n;
+        return out;
+      }
+    }
+    var note=cellAt(row,m.note);
+    var cn=composite(note);
+    if(cn) return cn;
+    var both=note.match(/(\d{1,2})\s*взр\D{0,12}?(\d{1,2})\s*(?:реб|дет)/i);
+    if(both) return { ad:Math.min(99,+both[1]), chd:Math.min(99,+both[2]) };
+    return out;
+  }
+
+  function markOn(v){
+    var t=String(v||'').trim().toLowerCase().replace(/ё/g,'е');
+    if(!t) return false;
+    return !/^(0|-|—|–|нет|no|n|неа|без)$/.test(t);
+  }
+  function marksOf(row, m){
+    var out={}, any=false;
+    MARK_KEYS.forEach(function(k){
+      out[k]=false;
+      if(m.marks[k]>=0){ any=true; out[k]=markOn(cellAt(row,m.marks[k])); }
+    });
+    if(!any){
+      var free=[cellAt(row,m.note), cellAt(row,m.tour)].join(' ');
+      if(free.trim()) MARK_KEYS.forEach(function(k){ if(MARK_TEXT[k].test(free)) out[k]=true; });
+    }
+    if(out.full) MARK_KEYS.forEach(function(k){ out[k]=true; });
+    return out;
+  }
+
+  function tourFromText(v){
+    var t=String(v||'');
+    if(!t.trim()) return '';
+    for(var i=0;i<TOUR_PATTERNS.length;i++){ if(TOUR_PATTERNS[i][1].test(t)) return TOUR_PATTERNS[i][0]; }
+    return '';
+  }
+  /* Тур для всей таблицы, когда своего столбца тура нет. Смотрим подпись рядом
+     с фото, шапку и отдельные короткие клетки вида «Далат». Столбцы с именами,
+     телефонами, отелями и комнатами при этом пропускаем: отель «Dalat Palace»
+     на янгбейской группе увёл бы весь лист в чужой тур. */
+  function tourFromTable(columns, rows, title, m){
+    var t = tourFromText(title) || tourFromText(columns.join(' '));
+    if(t) return t;
+    var skip={};
+    [m.name.length?m.name:[]].forEach(function(list){ list.forEach(function(i){ skip[i]=true; }); });
+    [m.phone, m.hotel, m.room, m.guide].forEach(function(i){ if(i>=0) skip[i]=true; });
+    for(var r=0;r<rows.length;r++){
+      var row=rows[r]||[];
+      for(var i=0;i<row.length;i++){
+        if(skip[i]) continue;
+        var v=String(row[i]||'').trim();
+        if(!v || v.length>24) continue;
+        var got=tourFromText(v);
+        if(got) return got;
+      }
+    }
+    return '';
+  }
+  function pad2(n){ return (n<10?'0':'')+n; }
+  function isoFromText(v){
+    var t=String(v||'');
+    var m=t.match(/(20\d{2})-(\d{1,2})-(\d{1,2})/);
+    if(m) return m[1]+'-'+pad2(+m[2])+'-'+pad2(+m[3]);
+    m=t.match(/(^|[^\d.:\/])(\d{1,2})[.\/](\d{1,2})(?:[.\/](\d{2,4}))?(?![\d.:\/])/);
+    if(!m) return '';
+    var d=+m[2], mo=+m[3], y=m[4]?+m[4]:(new Date()).getFullYear();
+    if(y<100) y+=2000;
+    if(!d || d>31 || !mo || mo>12) return '';
+    return y+'-'+pad2(mo)+'-'+pad2(d);
+  }
+
+  /* Служебная строка: пустая, либо начинающаяся со слова «итого» и ему подобных.
+     Такие строки в ведомость попадать не должны — иначе итог посчитается дважды. */
+  function isServiceRow(row){
+    var joined=row.join(' ').replace(/\s+/g,' ').trim();
+    if(!joined || !/[0-9a-zа-яё]/i.test(joined)) return true;
+    var first='';
+    for(var i=0;i<row.length;i++){ if(row[i]){ first=String(row[i]).toLowerCase().replace(/ё/g,'е'); break; } }
+    return /^(итог|всего|сумма|total|общее|общий|подытог)/.test(first);
+  }
+
+  var ROLE_LABELS={ name:'Семья', phone:'Телефон', hotel:'Отель', room:'Комната',
+                    ad:'Взрослые', chd:'Дети', pax:'Туристы', tour:'Тур',
+                    date:'Дата', guide:'Гид', note:'Примечание',
+                    full:'Full', alpin:'Сани', most:'Мост', kanat:'Канат', train:'Поезд' };
+
+  /* Главная функция разнесения: таблица → готовые группы для ведомостей. */
+  function planFromTable(data, hint){
+    var columns=(data&&data.columns)||[], rows=(data&&data.rows)||[];
+    var title=(data&&data.title)||'';
+    var m=detectColumns(columns, rows);
+    var idColumns = m.name.length || m.phone>=0 || m.hotel>=0;
+    /* Тур всей таблицы: что оператор выбрал кнопкой — главнее всего, это его
+       прямое указание. Кнопка стоит на «Определит ИИ» — берём тур, который
+       распознавание увидело на самом фото, и только потом ищем его в тексте. */
+    var tableTour = tourFromCode(hint) || tourFromCode(data && data.tour)
+                 || tourFromTable(columns, rows, title, m);
+    var order=[], byTour={}, guessed=[], skipped=0;
+    var rowsUsed=[];
+
+    rows.forEach(function(row, idx){
+      if(isServiceRow(row)){ skipped++; return; }
+      var name=m.name.map(function(i){ return cellAt(row,i); })
+                     .filter(function(v){ return v; }).join(' ').trim();
+      var phone=cellAt(row,m.phone), hotel=cellAt(row,m.hotel), room=cellAt(row,m.room);
+      var c=countsOf(row, m);
+
+      /* в таблице есть столбцы с именем, телефоном или отелем, а в этой строке
+         пусто во всех трёх — это подпись или итог, а не семья */
+      if(idColumns && !name && !phone && !hotel){ skipped++; return; }
+      if(!c.ad && !c.chd){
+        if(!name && !phone && !hotel){ skipped++; return; }
+        c.ad=1; guessed.push(idx+1);
+      }
+
+      var tour=tourFromText(cellAt(row,m.tour)) || tableTour || 'unknown';
+      tour=tourKey(tour);
+      var fam={ name:name, phone:phone, hotel:hotel, room:room, ad:c.ad, chd:c.chd };
+      if(tour==='dalat' || tour==='unknown'){
+        var marks=marksOf(row, m);
+        MARK_KEYS.forEach(function(k){ fam[k]=marks[k]; });
+      }
+      if(!byTour[tour]){ byTour[tour]={ tour:tour, families:[], ad:0, chd:0 }; order.push(tour); }
+      byTour[tour].families.push(fam);
+      rowsUsed.push(fam);
+    });
+
+    /* последняя строка без имени и телефона, равная сумме предыдущих, — это итог */
+    if(rowsUsed.length>2){
+      var last=rowsUsed[rowsUsed.length-1];
+      if(!last.name && !last.phone && !last.hotel){
+        var sAd=0, sChd=0;
+        rowsUsed.slice(0,-1).forEach(function(f){ sAd+=f.ad; sChd+=f.chd; });
+        if(last.ad===sAd && last.chd===sChd){
+          order.forEach(function(t){
+            byTour[t].families=byTour[t].families.filter(function(f){ return f!==last; });
+          });
+          skipped++;
+        }
+      }
+    }
+
+    var groups=order.map(function(t){ return byTour[t]; })
+                    .filter(function(g){ return g.families.length; });
+    groups.forEach(function(g){
+      g.ad=g.families.reduce(function(n,f){ return n+(f.ad||0); },0);
+      g.chd=g.families.reduce(function(n,f){ return n+(f.chd||0); },0);
+    });
+
+    var out={ groups:groups, source:'local' };
+
+    /* дата и имя гида: свой столбец, иначе подпись над таблицей или сама шапка */
+    var headText=columns.join(' ')+' '+title;
+    var iso=isoFromText(m.date>=0 ? (colCells(rows,m.date)[0]||'') : '') || isoFromText(title) || isoFromText(headText);
+    if(iso) out.date=iso;
+    var guide=m.guide>=0 ? (colCells(rows,m.guide)[0]||'') : '';
+    if(!guide){
+      var gm=headText.match(/(?:гид|guide|hdv)\W{0,3}([A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё-]{1,19})/i);
+      if(gm) guide=gm[1];
+    }
+    if(guide) out.guide=String(guide).trim().slice(0,60);
+
+    /* что именно взято из каких столбцов — видно на странице, чтобы ошибку
+       разбора можно было заметить, не сверяя таблицу по клеткам */
+    var used=[];
+    var pushCol=function(role, i){
+      if(i>=0) used.push(ROLE_LABELS[role]+' ← «'+(columns[i]||('столбец '+(i+1)))+'»');
+    };
+    m.name.forEach(function(i){ pushCol('name', i); });
+    ['phone','hotel','room','ad','chd','pax','tour','date','guide'].forEach(function(role){ pushCol(role, m[role]); });
+    MARK_KEYS.forEach(function(k){ pushCol(k, m.marks[k]); });
+    out.mapping=used;
+
+    var notes=[];
+    if(m.phone<0) notes.push('Столбец с телефоном в таблице не найден — гиду уйдут только имена.');
+    if(m.ad<0 && m.chd<0 && m.pax<0) notes.push('Столбца с числом туристов нет — в каждой строке посчитан один взрослый.');
+    else if(guessed.length) notes.push('Числа туристов нет в строках: '+guessed.slice(0,12).join(', ')
+      + (guessed.length>12?' и ещё '+(guessed.length-12):'') + ' — поставлено по одному взрослому, проверьте.');
+    if(skipped) notes.push('Служебных и пустых строк пропущено: '+skipped+'.');
+    out.notes=notes.join(' ');
+    return out;
+  }
+
+  /* Разнесение: мгновенный разбор таблицы на странице. Если разобрать не удалось
+     совсем (нестандартная шапка), один раз спрашиваем ИИ — это запасной путь. */
+  function makePlan(data, afterScan){
+    aiReset();
+    var res;
+    try{ res=planFromTable(data, tourHint); }
+    catch(e){ res=null; }
+    if(!res || !res.groups.length){ runAiPlan(data, afterScan); return; }
+    plan=mergeTours(res);
+    planReady(afterScan);
+  }
+
+  /* Разнесение готово. Если ни у одной строки не определился тур, в учёт уйти
+     нечему — и об этом надо сказать вслух: молчаливо пустая ведомость и есть
+     та самая ошибка «учёт не заполняется». */
+  function planReady(afterScan){
+    renderPlan(plan);
+    if(hasKnown(plan)){
+      if(afterScan && aiAuto.checked) applyPlan('add', true);
+      return;
+    }
+    window.ParusUchet.toast('Тур не узнан — выберите его в блоке «Тур не узнан», и строки уйдут в учёт');
+  }
+
+  /* Запасной путь: таблицу разносит ИИ. Фото второй раз не отправляется,
+     поэтому запрос почти ничего не стоит. */
+  function runAiPlan(data, afterScan){
     var wasAuto=aiAuto.checked;
     aiReset();
     aiAuto.checked=wasAuto;
@@ -2925,10 +3308,12 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
       });
     }).then(function(res){
       aiBusy.style.display='none';
-      if(!res || !Array.isArray(res.groups) || !res.groups.length) throw new Error('ИИ не нашёл в таблице туристов.');
+      if(!res || !Array.isArray(res.groups) || !res.groups.length) throw new Error('В таблице не нашлось туристов.');
+      res.source='ai';
+      res.notes=(res.notes?res.notes+' ':'')
+        + 'Столбцы таблицы разобрать не удалось, разносил ИИ — сверьте числа с таблицей выше.';
       plan=mergeTours(res);
-      renderPlan(res);
-      if(afterScan && aiAuto.checked && hasKnown(res)) applyPlan('add', true);
+      planReady(afterScan);
     }).catch(function(e){
       aiShowErr(e.message || 'Не удалось разнести таблицу по турам.');
       aiActions.style.display='flex';
@@ -2969,23 +3354,30 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
       return g.families.map(function(f){
         var marks=Object.keys(MARK_LABELS).filter(function(k){ return f[k]; })
                         .map(function(k){ return MARK_LABELS[k]; }).join(', ');
+        var room=[(f.hotel||''), (f.room?'№ '+f.room:'')].filter(Boolean).join(', ');
         return '<tr'+(g.tour==='unknown'?' class="incomplete"':'')+'>'
           + '<td>'+esc(TOUR_LABELS[g.tour]||g.tour)+'</td>'
           + '<td>'+(f.name?esc(f.name):'—')+'</td>'
           + '<td>'+(f.phone?esc(f.phone):'—')+'</td>'
+          + '<td>'+(room?esc(room):'—')+'</td>'
           + '<td>'+f.ad+'</td><td>'+f.chd+'</td>'
           + '<td>'+(marks||'—')+'</td></tr>';
       }).join('');
     }).join('');
 
     var notes=[];
+    /* разбор столбцов показываем первым: по этой строке сразу видно, что
+       телефон взят из телефона, а число детей — из нужной клетки */
+    if(res.mapping && res.mapping.length){
+      notes.push('Разобрано по столбцам: '+esc(res.mapping.join(' · '))+'.');
+    }
     if(res.notes) notes.push(esc(res.notes));
     if(groups.some(function(g){ return g.tour==='unknown'; })) notes.push('Строки без узнанного тура в ведомости не попадут — внесите их вручную.');
     if(groups.some(function(g){ return g.tour==='islands_south'; })) notes.push('Южные острова считаются одним числом туристов X, но состав группы виден рядом с полем — например 15+1.');
 
     aiOut.innerHTML='<div class="legend" style="justify-content:flex-start;margin-bottom:0">'+chips+'</div>'
       + '<div class="tbl-wrap" style="margin-top:14px"><table class="grid">'
-      + '<thead><tr><th>Тур</th><th>Семья</th><th>Телефон</th><th>AD</th><th>CHD</th><th>Отметки</th></tr></thead>'
+      + '<thead><tr><th>Тур</th><th>Семья</th><th>Телефон</th><th>Отель</th><th>AD</th><th>CHD</th><th>Отметки</th></tr></thead>'
       + '<tbody>'+body+'</tbody></table></div>'
       + notes.map(function(n){ return '<p class="price-note">'+n+'</p>'; }).join('');
     aiOut.style.display='block';
@@ -3043,9 +3435,15 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
   function applyPlan(mode, silentScroll){
     if(!plan || !window.ParusUchet) return;
     var groups=(plan.groups||[]).filter(function(g){ return g.tour!=='unknown'; });
-    if(!groups.length) return;
+    if(!groups.length){
+      window.ParusUchet.toast('Тур ни у одной строки не определён — выберите его в блоке «Тур не узнан»');
+      return;
+    }
     var res=window.ParusUchet.apply(groups, mode);
-    if(!res.applied.length) return;
+    if(!res.applied.length){
+      window.ParusUchet.toast('В учёт ничего не ушло — в этих строках нет ни взрослых, ни детей');
+      return;
+    }
     var ad=0, chd=0;
     res.applied.forEach(function(a){ ad+=a.ad; chd+=a.chd; });
     var where=res.applied.map(function(a){ return a.label; }).join(', ');
@@ -3058,7 +3456,7 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
 
   document.getElementById('scanAiAdd').addEventListener('click', function(){ applyPlan('add'); });
   document.getElementById('scanAiReplace').addEventListener('click', function(){ applyPlan('replace'); });
-  document.getElementById('scanAiRetry').addEventListener('click', function(){ if(current) runPlan(current); });
+  document.getElementById('scanAiRetry').addEventListener('click', function(){ if(current) makePlan(current); });
 
   /* ─────── передача имён и телефонов гиду (Глава II) ─────── */
   var gdBox=document.getElementById('scanGuide');
@@ -3094,6 +3492,20 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
     return lines;
   }
 
+  function travelersPhones(key){
+    var groups=(plan&&plan.groups)||[];
+    var picked = key==='__all' ? groups : groups.filter(function(g){ return g.tour===key; });
+    var out=[];
+    picked.forEach(function(g){
+      g.families.forEach(function(f){
+        var nm=(f.name||'').trim(), ph=(f.phone||'').trim();
+        if(!nm && !ph) return;
+        out.push(ph);
+      });
+    });
+    return out;
+  }
+
   function fillGuideBlock(res){
     if(!window.ParusGuides){ gdBox.style.display='none'; return; }
     var groups=(res.groups||[]).filter(function(g){ return g.families.length; });
@@ -3124,8 +3536,14 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
   function renderGdPreview(){
     var lines=travelersFor(gdTour.value);
     if(!lines.length){ gdPreview.textContent='В выбранных строках нет ни имён, ни телефонов.'; return; }
+    /* телефоны нужны гиду на любом туре, не только на Далате: если их в скане
+       нет, это должно быть видно здесь, а не выясняться уже в переписке */
+    var withPhone=0;
+    travelersPhones(gdTour.value).forEach(function(p){ if(p) withPhone++; });
     var shown=lines.slice(0,3).join(' · ');
-    gdPreview.textContent = 'Уйдёт строк: '+lines.length+' — '+shown+(lines.length>3?' · и ещё '+(lines.length-3):'');
+    gdPreview.textContent = 'Уйдёт строк: '+lines.length
+      + ' · телефонов: '+withPhone+' из '+lines.length
+      + ' — '+shown+(lines.length>3?' · и ещё '+(lines.length-3):'');
   }
 
   gdTour.addEventListener('change', function(){ gdShowNote(''); syncGuides(); });
@@ -3138,8 +3556,13 @@ renderDalat(); renderIsl(); calcYangbey(); renderYgb(); renderBz();
     var tourId = gdTour.value==='__all' ? '' : (TOUR_TO_GUIDE[gdTour.value]||'');
     var r=window.ParusGuides.fill(gdGuide.value, tourId, lines.join('\n'), mode);
     if(!r){ gdShowNote('Не удалось открыть бланк гида.'); return; }
-    window.ParusUchet.toast((mode==='replace'?'Список заменён у гида ':'Передано гиду ')+r.guide+' · строк: '+lines.length);
-    gdShowNote(r.leadsTour ? '' : 'У гида «'+r.guide+'» этот тур не отмечен в карточке — в бланке он всё равно проставлен.');
+    var phones=travelersPhones(gdTour.value).filter(function(p){ return p; }).length;
+    window.ParusUchet.toast((mode==='replace'?'Список заменён у гида ':'Передано гиду ')+r.guide
+      +' · строк: '+lines.length+' · телефонов: '+phones);
+    var hints=[];
+    if(!r.leadsTour) hints.push('У гида «'+r.guide+'» этот тур не отмечен в карточке — в бланке он всё равно проставлен.');
+    if(phones<lines.length) hints.push('Без телефона строк: '+(lines.length-phones)+' — в таблице их не было, впишите в бланке вручную.');
+    gdShowNote(hints.join(' '));
   }
 
   document.getElementById('scanGdAdd').addEventListener('click', function(){ sendToGuide('add'); });
